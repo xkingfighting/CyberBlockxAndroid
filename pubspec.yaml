@@ -1,0 +1,40 @@
+name: cyber_blockx_flutter
+description: "Cyber Blockx - A Cyberpunk Puzzle Game with Solana Integration"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Game Engine
+  flame: ^1.21.0
+
+  # Solana Integration (temporarily disabled due to AGP compatibility)
+  # solana_wallet_adapter: any
+  # solana: any
+
+  # UI & Utilities
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.3
+  audioplayers: ^6.1.0
+
+  # Icons
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Assets
+  assets:
+    - assets/fonts/
+    - assets/audio/
