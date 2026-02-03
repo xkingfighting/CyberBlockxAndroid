@@ -89,7 +89,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                               ),
                             ),
 
-                            const SizedBox(height: 50),
+                            const SizedBox(height: 200),
 
                             // Menu section - always rendered, opacity animated
                             AnimatedOpacity(
@@ -117,18 +117,22 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildTitle() {
-    const double fontSize = 44;
-    const double letterSpacing = 3;
+    const double fontSize = 54;
+    const double letterSpacing = 5;
 
     return AnimatedBuilder(
       animation: _glowAnimation,
       builder: (context, child) {
         return Column(
           children: [
-            // CYBER
+            // CYBER - iOS: cyan → blue → purple gradient
             ShaderMask(
               shaderCallback: (bounds) => const LinearGradient(
-                colors: [CyberColors.cyan, CyberColors.blue, CyberColors.purple],
+                colors: [
+                  Color(0xFF00FFFF),  // Cyan
+                  Color(0xFF00AAFF),  // Blue
+                  Color(0xFF8844FF),  // Purple
+                ],
               ).createShader(bounds),
               child: Text(
                 'CYBER',
@@ -136,26 +140,36 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                   fontSize: fontSize,
                   fontWeight: FontWeight.w900,
                   fontFamily: 'monospace',
-                  color: Colors.white,
+                                    color: Colors.white,
                   letterSpacing: letterSpacing,
                   shadows: [
                     Shadow(
-                      color: CyberColors.cyan.withOpacity(_glowAnimation.value),
-                      blurRadius: _glowAnimation.value * 30,
+                      color: const Color(0xFF00FFFF).withOpacity(_glowAnimation.value * 0.8),
+                      blurRadius: _glowAnimation.value * 25,
+                    ),
+                    // Extra shadow for bolder text
+                    const Shadow(
+                      color: Color(0xFF00FFFF),
+                      blurRadius: 2,
+                      offset: Offset(0.5, 0.5),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 4),
-            // BLOCKX
+            const SizedBox(height: 2),
+            // BLOCKX - iOS: purple/pink → blue → orange/red with X in bright red
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 ShaderMask(
                   shaderCallback: (bounds) => const LinearGradient(
-                    colors: [CyberColors.pink, CyberColors.purple, CyberColors.blue],
+                    colors: [
+                      Color(0xFFFF00FF),  // Magenta/Pink
+                      Color(0xFFAA44FF),  // Purple
+                      Color(0xFF6666FF),  // Blue-purple
+                    ],
                   ).createShader(bounds),
                   child: Text(
                     'BLOCK',
@@ -163,36 +177,44 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                       fontSize: fontSize,
                       fontWeight: FontWeight.w900,
                       fontFamily: 'monospace',
-                      color: Colors.white,
+                                            color: Colors.white,
                       letterSpacing: letterSpacing,
                       shadows: [
                         Shadow(
-                          color: CyberColors.pink.withOpacity(_glowAnimation.value),
-                          blurRadius: _glowAnimation.value * 30,
+                          color: const Color(0xFFFF00FF).withOpacity(_glowAnimation.value * 0.7),
+                          blurRadius: _glowAnimation.value * 25,
+                        ),
+                        // Extra shadow for bolder text
+                        const Shadow(
+                          color: Color(0xFFFF00FF),
+                          blurRadius: 2,
+                          offset: Offset(0.5, 0.5),
                         ),
                       ],
                     ),
                   ),
                 ),
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [CyberColors.orange, CyberColors.red, CyberColors.pink],
-                  ).createShader(bounds),
-                  child: Text(
-                    'X',
-                    style: TextStyle(
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'monospace',
-                      color: Colors.white,
-                      letterSpacing: letterSpacing,
-                      shadows: [
-                        Shadow(
-                          color: CyberColors.orange.withOpacity(_glowAnimation.value * 1.1),
-                          blurRadius: _glowAnimation.value * 35,
-                        ),
-                      ],
-                    ),
+                // X - iOS: bright red/orange
+                Text(
+                  'X',
+                  style: TextStyle(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'monospace',
+                                        color: const Color(0xFFFF4444),  // Bright red
+                    letterSpacing: letterSpacing,
+                    shadows: [
+                      Shadow(
+                        color: const Color(0xFFFF4444).withOpacity(_glowAnimation.value),
+                        blurRadius: _glowAnimation.value * 30,
+                      ),
+                      // Extra shadow for bolder text
+                      const Shadow(
+                        color: Color(0xFFFF4444),
+                        blurRadius: 2,
+                        offset: Offset(0.5, 0.5),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -219,7 +241,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
         ),
         const SizedBox(height: 16),
 
-        // Menu buttons - all 3 in one row
+        // Menu buttons - all 3 in one row (matching iOS layout)
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Row(
@@ -231,14 +253,14 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                 color: CyberColors.yellow,
                 onTap: widget.onLeaderboard,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               _MenuButton(
                 title: L.settings.tr,
                 icon: Icons.settings,
                 color: CyberColors.cyan,
                 onTap: widget.onSettings,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               _MenuButton(
                 title: L.controls.tr,
                 icon: Icons.gamepad,
@@ -289,7 +311,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 }
 
-/// Menu button matching iOS style
+/// Menu button matching iOS style - transparent background, border only
 class _MenuButton extends StatefulWidget {
   final String title;
   final IconData icon;
@@ -321,19 +343,19 @@ class _MenuButtonState extends State<_MenuButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(10),
+          color: _isPressed ? widget.color.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _isPressed ? widget.color : widget.color.withOpacity(0.6),
+            color: _isPressed ? widget.color : widget.color.withOpacity(0.5),
             width: 1.5,
           ),
           boxShadow: _isPressed
               ? [
                   BoxShadow(
-                    color: widget.color.withOpacity(0.4),
-                    blurRadius: 12,
+                    color: widget.color.withOpacity(0.3),
+                    blurRadius: 10,
                   ),
                 ]
               : null,
@@ -344,13 +366,13 @@ class _MenuButtonState extends State<_MenuButton> {
             Icon(
               widget.icon,
               color: _isPressed ? Colors.white : widget.color,
-              size: 14,
+              size: 16,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               widget.title,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'monospace',
                 color: _isPressed ? Colors.white : widget.color,

@@ -87,7 +87,7 @@ class RightHUD extends StatelessWidget {
     return SizedBox(
       width: 58, // Match iOS width
       child: Padding(
-        padding: const EdgeInsets.only(right: 2),
+        padding: const EdgeInsets.only(right: 2, top: 15), // Move down 15px
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

@@ -16,7 +16,6 @@ class _MenuBackgroundState extends State<MenuBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late List<_DataRainColumn> _dataRainColumns;
-  late List<_Building> _buildings;
   final Random _random = Random();
 
   @override
@@ -28,7 +27,6 @@ class _MenuBackgroundState extends State<MenuBackground>
     )..repeat();
 
     _dataRainColumns = [];
-    _buildings = [];
   }
 
   @override
@@ -50,44 +48,7 @@ class _MenuBackgroundState extends State<MenuBackground>
           opacity: _random.nextDouble() * 0.3 + 0.1,
         );
       });
-
-      // Initialize buildings
-      double x = 0;
-      while (x < size.width) {
-        final width = _random.nextDouble() * 40 + 20;
-        final height = _random.nextDouble() * 120 + 40;
-        _buildings.add(_Building(
-          x: x,
-          width: width,
-          height: height,
-          windows: _generateWindows(width, height),
-        ));
-        x += width + _random.nextDouble() * 10 + 5;
-      }
     }
-  }
-
-  List<_Window> _generateWindows(double buildingWidth, double buildingHeight) {
-    final windows = <_Window>[];
-    final cols = (buildingWidth / 12).floor();
-    final rows = (buildingHeight / 15).floor();
-
-    for (int row = 0; row < rows; row++) {
-      for (int col = 0; col < cols; col++) {
-        if (_random.nextDouble() > 0.6) {
-          windows.add(_Window(
-            x: col * 12.0 + 6,
-            y: row * 15.0 + 8,
-            color: [CyberColors.cyan, CyberColors.pink, CyberColors.yellow][
-                _random.nextInt(3)],
-            flickerPhase: _random.nextDouble() * pi * 2,
-            flickerSpeed: _random.nextDouble() * 2 + 0.5,
-            isFlickering: _random.nextDouble() > 0.7,
-          ));
-        }
-      }
-    }
-    return windows;
   }
 
   @override
@@ -114,7 +75,7 @@ class _MenuBackgroundState extends State<MenuBackground>
               ),
             ),
 
-            // Animated elements
+            // Animated elements (data rain + holographic waves, no glitch blocks)
             AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
@@ -123,7 +84,6 @@ class _MenuBackgroundState extends State<MenuBackground>
                   painter: _MenuBackgroundPainter(
                     time: DateTime.now().millisecondsSinceEpoch / 1000.0,
                     dataRainColumns: _dataRainColumns,
-                    buildings: _buildings,
                   ),
                 );
               },
@@ -168,54 +128,19 @@ class _DataRainColumn {
   });
 }
 
-class _Building {
-  final double x;
-  final double width;
-  final double height;
-  final List<_Window> windows;
-
-  _Building({
-    required this.x,
-    required this.width,
-    required this.height,
-    required this.windows,
-  });
-}
-
-class _Window {
-  final double x;
-  final double y;
-  final Color color;
-  final double flickerPhase;
-  final double flickerSpeed;
-  final bool isFlickering;
-
-  _Window({
-    required this.x,
-    required this.y,
-    required this.color,
-    required this.flickerPhase,
-    required this.flickerSpeed,
-    required this.isFlickering,
-  });
-}
-
 class _MenuBackgroundPainter extends CustomPainter {
   final double time;
   final List<_DataRainColumn> dataRainColumns;
-  final List<_Building> buildings;
   final Random _random = Random(42); // Fixed seed for consistent characters
 
   _MenuBackgroundPainter({
     required this.time,
     required this.dataRainColumns,
-    required this.buildings,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     _drawHolographicWaves(canvas, size);
-    _drawCity(canvas, size);
     _drawDataRain(canvas, size);
   }
 
@@ -239,70 +164,6 @@ class _MenuBackgroundPainter extends CustomPainter {
 
       wavePaint.color = CyberColors.cyan.withOpacity(0.15 - i * 0.02);
       canvas.drawPath(path, wavePaint);
-    }
-  }
-
-  void _drawCity(Canvas canvas, Size size) {
-    final cityY = size.height * 0.75;
-
-    for (final building in buildings) {
-      // Building body
-      final bodyRect = Rect.fromLTWH(
-        building.x,
-        cityY - building.height,
-        building.width,
-        building.height,
-      );
-
-      final bodyPaint = Paint()
-        ..color = const Color(0xFF080818);
-      canvas.drawRect(bodyRect, bodyPaint);
-
-      // Building outline
-      final outlinePaint = Paint()
-        ..color = const Color(0xFF1A1A30).withOpacity(0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
-      canvas.drawRect(bodyRect, outlinePaint);
-
-      // Windows
-      for (final window in building.windows) {
-        double opacity = 0.5;
-        if (window.isFlickering) {
-          opacity = 0.3 + 0.4 * (0.5 + 0.5 * sin(time * window.flickerSpeed + window.flickerPhase));
-        }
-
-        final windowPaint = Paint()
-          ..color = window.color.withOpacity(opacity);
-
-        canvas.drawRect(
-          Rect.fromLTWH(
-            building.x + window.x - 2,
-            cityY - building.height + window.y - 3,
-            4,
-            6,
-          ),
-          windowPaint,
-        );
-      }
-
-      // Neon accent on some buildings
-      if (building.width > 30 && _random.nextDouble() > 0.5) {
-        final accentColors = [CyberColors.pink, CyberColors.cyan, CyberColors.purple];
-        final accentPaint = Paint()
-          ..color = accentColors[building.x.toInt() % 3].withOpacity(0.6)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-
-        canvas.drawRect(
-          Rect.fromLTWH(
-            building.x + building.width * 0.1,
-            cityY - building.height - 1,
-            building.width * 0.8,
-            2,
-          ),
-          accentPaint,
-        );
-      }
     }
   }
 
@@ -344,22 +205,4 @@ class _MenuBackgroundPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MenuBackgroundPainter oldDelegate) => true;
-}
-
-class _ScanLinesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black.withOpacity(0.08);
-
-    for (double y = 0; y < size.height; y += 4) {
-      canvas.drawRect(
-        Rect.fromLTWH(0, y, size.width, 1),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

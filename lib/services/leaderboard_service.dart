@@ -42,10 +42,14 @@ class LeaderboardService extends ChangeNotifier {
   LeaderboardService._internal();
 
   static const _leaderboardKey = 'CyberBlockx_Leaderboard';
-  static const int maxEntries = 10;
+  static const _lastPlayerNameKey = 'CyberBlockx_LastPlayerName';
+  static const int maxEntries = 20;
 
   List<LeaderboardEntry> _entries = [];
   List<LeaderboardEntry> get entries => List.unmodifiable(_entries);
+
+  String _lastPlayerName = '';
+  String get lastPlayerName => _lastPlayerName;
 
   int get highScore => _entries.isNotEmpty ? _entries.first.score : 0;
 
@@ -64,6 +68,8 @@ class LeaderboardService extends ChangeNotifier {
             .toList();
         _entries.sort((a, b) => b.score.compareTo(a.score));
       }
+      // Load last player name
+      _lastPlayerName = prefs.getString(_lastPlayerNameKey) ?? '';
     } catch (e) {
       debugPrint('Error loading leaderboard: $e');
       _entries = [];
@@ -87,8 +93,13 @@ class LeaderboardService extends ChangeNotifier {
     required int lines,
     String? name,
   }) async {
+    // Use last player name if no name provided, default to 'Player'
+    final playerName = (name?.trim().isNotEmpty == true)
+        ? name!.trim()
+        : (_lastPlayerName.isNotEmpty ? _lastPlayerName : 'Player');
+
     final entry = LeaderboardEntry(
-      name: name ?? 'Player',
+      name: playerName,
       score: score,
       level: level,
       lines: lines,
@@ -103,10 +114,15 @@ class LeaderboardService extends ChangeNotifier {
       _entries = _entries.sublist(0, maxEntries);
     }
 
+    // Save last player name
+    _lastPlayerName = playerName;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_lastPlayerNameKey, _lastPlayerName);
+
     await _saveEntries();
     notifyListeners();
 
-    // Return rank if in top 10, null otherwise
+    // Return rank if in top entries, null otherwise
     final rank = _entries.indexWhere((e) =>
       e.score == score && e.date == entry.date);
     return rank >= 0 && rank < maxEntries ? rank + 1 : null;

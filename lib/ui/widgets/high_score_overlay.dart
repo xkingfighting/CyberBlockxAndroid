@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
 import '../theme/cyber_theme.dart';
 
@@ -21,23 +22,38 @@ class HighScoreOverlay extends StatefulWidget {
 }
 
 class _HighScoreOverlayState extends State<HighScoreOverlay>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TextEditingController _nameController;
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
+  late AnimationController _starController;
+  late Animation<double> _starAnimation;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'PLAYER');
+    // Pre-fill with last player name (matching iOS behavior)
+    final lastName = LeaderboardService.instance.lastPlayerName;
+    _nameController = TextEditingController(text: lastName.isNotEmpty ? lastName : 'PLAYER');
 
+    // Subtle glow animation (reduced intensity)
     _glowController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2000),
       vsync: this,
     )..repeat(reverse: true);
 
-    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _glowAnimation = Tween<double>(begin: 0.3, end: 0.6).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+
+    // Star wobble animation (matching iOS: ±10 degrees)
+    _starController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _starAnimation = Tween<double>(begin: -10.0, end: 10.0).animate(
+      CurvedAnimation(parent: _starController, curve: Curves.easeInOut),
     );
   }
 
@@ -45,6 +61,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
   void dispose() {
     _nameController.dispose();
     _glowController.dispose();
+    _starController.dispose();
     super.dispose();
   }
 
@@ -73,19 +90,18 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        CyberColors.cyan.withOpacity(0.3 + glowIntensity * 0.3),
-                        CyberColors.purple.withOpacity(0.3 + glowIntensity * 0.3),
+                        CyberColors.cyan.withOpacity(0.6),
+                        CyberColors.purple.withOpacity(0.4),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: CyberColors.cyan.withOpacity(glowIntensity * 0.4),
-                        blurRadius: 20,
-                        spreadRadius: 2,
+                        color: CyberColors.cyan.withOpacity(0.2),
+                        blurRadius: 30,
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(2),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
                     decoration: BoxDecoration(
@@ -172,86 +188,91 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
   }
 
   Widget _buildTitle(double glowIntensity) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.star,
-          color: CyberColors.yellow,
-          size: 24,
-          shadows: [
-            Shadow(
-              color: CyberColors.yellow.withOpacity(glowIntensity),
-              blurRadius: 10,
+    return AnimatedBuilder(
+      animation: _starAnimation,
+      builder: (context, child) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Left star with wobble animation (opposite direction)
+            Transform.rotate(
+              angle: -_starAnimation.value * 3.14159 / 180, // Opposite direction
+              child: Icon(
+                Icons.star,
+                color: CyberColors.yellow,
+                size: 24,
+                shadows: [
+                  Shadow(
+                    color: CyberColors.yellow.withOpacity(0.5),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [CyberColors.yellow, CyberColors.orange],
+              ).createShader(bounds),
+              child: Text(
+                L.newHighScore.tr,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  shadows: [
+                    Shadow(
+                      color: CyberColors.yellow.withOpacity(0.5),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Right star with wobble animation
+            Transform.rotate(
+              angle: _starAnimation.value * 3.14159 / 180,
+              child: Icon(
+                Icons.star,
+                color: CyberColors.yellow,
+                size: 24,
+                shadows: [
+                  Shadow(
+                    color: CyberColors.yellow.withOpacity(0.5),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
             ),
           ],
-        ),
-        const SizedBox(width: 12),
-        Text(
-          L.newHighScore.tr,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'monospace',
-            color: CyberColors.yellow,
-            letterSpacing: 2,
-            shadows: [
-              Shadow(
-                color: CyberColors.yellow.withOpacity(glowIntensity),
-                blurRadius: 10,
-              ),
-              Shadow(
-                color: CyberColors.orange.withOpacity(glowIntensity * 0.5),
-                blurRadius: 20,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 12),
-        Icon(
-          Icons.star,
-          color: CyberColors.yellow,
-          size: 24,
-          shadows: [
-            Shadow(
-              color: CyberColors.yellow.withOpacity(glowIntensity),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
   Widget _buildScoreDisplay(double glowIntensity) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: CyberColors.cyan.withOpacity(glowIntensity * 0.6),
-            blurRadius: 20,
-          ),
-        ],
-      ),
+    // Subtle glow effect matching iOS - reduced intensity
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Colors.white, CyberColors.cyan],
+      ).createShader(bounds),
       child: Text(
         '${widget.score}',
         style: TextStyle(
           fontSize: 56,
           fontWeight: FontWeight.w900,
           fontFamily: 'monospace',
-          color: CyberColors.cyan,
+          color: Colors.white,
           shadows: [
+            // Subtle cyan glow only
             Shadow(
-              color: Colors.white.withOpacity(glowIntensity * 0.3),
-              blurRadius: 2,
-            ),
-            Shadow(
-              color: CyberColors.cyan.withOpacity(glowIntensity),
-              blurRadius: 15,
-            ),
-            Shadow(
-              color: CyberColors.cyan.withOpacity(glowIntensity * 0.5),
-              blurRadius: 30,
+              color: CyberColors.cyan.withOpacity(0.5),
+              blurRadius: 10,
             ),
           ],
         ),
@@ -287,7 +308,9 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
-              hintText: 'PLAYER',
+              hintText: LeaderboardService.instance.lastPlayerName.isNotEmpty
+                  ? LeaderboardService.instance.lastPlayerName
+                  : 'PLAYER',
               hintStyle: TextStyle(
                 color: Colors.grey[600],
                 fontFamily: 'monospace',
