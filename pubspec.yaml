@@ -14,14 +14,22 @@ dependencies:
   # Game Engine
   flame: ^1.21.0
 
-  # Solana Integration (temporarily disabled due to AGP compatibility)
-  # solana_wallet_adapter: any
-  # solana: any
+  # Solana / Web3 Integration
+  solana_mobile_client: ^0.1.2
+
+  # HTTP & Security
+  http: ^1.2.0
+  flutter_secure_storage: ^9.2.2
+  pinenacl: ^0.6.0
 
   # UI & Utilities
   google_fonts: ^6.2.1
   shared_preferences: ^2.3.3
   audioplayers: ^6.1.0
+  flutter_svg: ^2.0.10
+  qr_flutter_wc: ^0.0.3
+  url_launcher: ^6.2.0
+  app_links: ^6.3.3
 
   # Icons
   cupertino_icons: ^1.0.8
@@ -38,3 +46,4 @@ flutter:
   assets:
     - assets/fonts/
     - assets/audio/
+    - assets/images/

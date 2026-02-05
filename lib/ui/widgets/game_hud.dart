@@ -67,12 +67,15 @@ class LeftHUD extends StatelessWidget {
   }
 
   String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
+    final str = number.toString();
+    final result = StringBuffer();
+    for (int i = 0; i < str.length; i++) {
+      if (i > 0 && (str.length - i) % 3 == 0) {
+        result.write(',');
+      }
+      result.write(str[i]);
     }
-    return number.toString();
+    return result.toString();
   }
 }
 

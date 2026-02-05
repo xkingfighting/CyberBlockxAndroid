@@ -428,6 +428,9 @@ class GameState extends ChangeNotifier {
       if (scoring.level > prevLevel) {
         _eventQueue.add(GameEvent.levelUp);
       }
+    } else {
+      // No lines cleared - reset combo (matching iOS behavior)
+      scoring.addLinesCleared(0);
     }
 
     // Reset lock state

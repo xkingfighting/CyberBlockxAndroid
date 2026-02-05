@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
 import '../theme/cyber_theme.dart';
@@ -7,7 +8,7 @@ class HighScoreOverlay extends StatefulWidget {
   final int score;
   final int rank;
   final VoidCallback onSkip;
-  final Function(String name) onSubmit;
+  final Future<void> Function(String name, bool syncToCloud) onSubmit;
 
   const HighScoreOverlay({
     super.key,
@@ -28,6 +29,9 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
   late Animation<double> _glowAnimation;
   late AnimationController _starController;
   late Animation<double> _starAnimation;
+
+  bool _syncToCloud = true; // Default ON when bound
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -65,8 +69,31 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
     super.dispose();
   }
 
+  Future<void> _handleSubmit() async {
+    if (_isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    final name = _nameController.text.trim();
+    final isBound = AuthService.instance.isBound;
+    await widget.onSubmit(
+      name.isEmpty ? 'PLAYER' : name,
+      isBound && _syncToCloud,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isBound = AuthService.instance.isBound;
+
     return ListenableBuilder(
       listenable: LocalizationService.instance,
       builder: (context, _) {
@@ -159,6 +186,13 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
                         // Text input field
                         _buildNameInput(),
+
+                        // Cloud sync toggle (only when bound)
+                        if (isBound) ...[
+                          const SizedBox(height: 16),
+                          _buildCloudSyncToggle(),
+                        ],
+
                         const SizedBox(height: 24),
 
                         // Buttons
@@ -184,6 +218,59 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
       ),
     );
       },
+    );
+  }
+
+  Widget _buildCloudSyncToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: _syncToCloud
+            ? CyberColors.green.withOpacity(0.1)
+            : Colors.grey.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _syncToCloud
+              ? CyberColors.green.withOpacity(0.3)
+              : Colors.grey.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _syncToCloud ? Icons.cloud_upload : Icons.cloud_off,
+            color: _syncToCloud ? CyberColors.green : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              L.uploadToGlobal.tr,
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'monospace',
+                color: _syncToCloud ? CyberColors.green : Colors.grey,
+              ),
+            ),
+          ),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: _syncToCloud,
+              onChanged: _isSubmitting ? null : (value) {
+                setState(() {
+                  _syncToCloud = value;
+                });
+              },
+              activeColor: CyberColors.green,
+              activeTrackColor: CyberColors.green.withOpacity(0.3),
+              inactiveThumbColor: Colors.grey[600],
+              inactiveTrackColor: Colors.grey[800],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -296,6 +383,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
           child: TextField(
             controller: _nameController,
             textAlign: TextAlign.center,
+            enabled: !_isSubmitting,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -308,6 +396,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
               hintText: LeaderboardService.instance.lastPlayerName.isNotEmpty
                   ? LeaderboardService.instance.lastPlayerName
                   : 'PLAYER',
@@ -327,7 +416,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
   Widget _buildSkipButton() {
     return GestureDetector(
-      onTap: widget.onSkip,
+      onTap: _isSubmitting ? null : widget.onSkip,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: ColoredBox(
@@ -337,18 +426,20 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: Colors.grey.withOpacity(0.5),
+                color: _isSubmitting
+                    ? Colors.grey.withOpacity(0.3)
+                    : Colors.grey.withOpacity(0.5),
                 width: 2,
               ),
             ),
             child: Center(
               child: Text(
                 L.skip.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
-                  color: Colors.white,
+                  color: _isSubmitting ? Colors.grey[700] : Colors.white,
                 ),
               ),
             ),
@@ -360,41 +451,56 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
   Widget _buildSubmitButton() {
     return GestureDetector(
-      onTap: () {
-        final name = _nameController.text.trim();
-        widget.onSubmit(name.isEmpty ? 'PLAYER' : name);
-      },
+      onTap: _isSubmitting ? null : _handleSubmit,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [CyberColors.green, Color(0xFF00CED1)],
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: CyberColors.green.withOpacity(0.4),
-                blurRadius: 8,
-              ),
-            ],
+            gradient: _isSubmitting
+                ? LinearGradient(
+                    colors: [Colors.grey[700]!, Colors.grey[600]!],
+                  )
+                : const LinearGradient(
+                    colors: [CyberColors.green, Color(0xFF00CED1)],
+                  ),
+            boxShadow: _isSubmitting
+                ? []
+                : [
+                    BoxShadow(
+                      color: CyberColors.green.withOpacity(0.4),
+                      blurRadius: 8,
+                    ),
+                  ],
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.check_circle,
-                color: Colors.black.withOpacity(0.8),
-                size: 20,
-              ),
+              if (_isSubmitting)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.grey[400],
+                  ),
+                )
+              else
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.black.withOpacity(0.8),
+                  size: 20,
+                ),
               const SizedBox(width: 8),
               Text(
-                L.submit.tr,
+                _isSubmitting ? L.submitting.tr : L.submit.tr,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
-                  color: Colors.black.withOpacity(0.9),
+                  color: _isSubmitting
+                      ? Colors.grey[400]
+                      : Colors.black.withOpacity(0.9),
                 ),
               ),
             ],

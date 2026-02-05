@@ -8,6 +8,7 @@ class LeaderboardEntry {
   final int level;
   final int lines;
   final DateTime date;
+  final bool isSynced; // Whether this score has been synced to cloud
 
   LeaderboardEntry({
     required this.name,
@@ -15,6 +16,7 @@ class LeaderboardEntry {
     required this.level,
     required this.lines,
     required this.date,
+    this.isSynced = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -23,6 +25,7 @@ class LeaderboardEntry {
     'level': level,
     'lines': lines,
     'date': date.toIso8601String(),
+    'isSynced': isSynced,
   };
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) {
@@ -32,6 +35,7 @@ class LeaderboardEntry {
       level: json['level'] as int,
       lines: json['lines'] as int,
       date: DateTime.parse(json['date'] as String),
+      isSynced: json['isSynced'] as bool? ?? false,
     );
   }
 }
@@ -92,6 +96,7 @@ class LeaderboardService extends ChangeNotifier {
     required int level,
     required int lines,
     String? name,
+    bool isSynced = false,
   }) async {
     // Use last player name if no name provided, default to 'Player'
     final playerName = (name?.trim().isNotEmpty == true)
@@ -104,6 +109,7 @@ class LeaderboardService extends ChangeNotifier {
       level: level,
       lines: lines,
       date: DateTime.now(),
+      isSynced: isSynced,
     );
 
     _entries.add(entry);

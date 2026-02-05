@@ -78,19 +78,46 @@ class Board {
 
   /// Clear completed lines and return the number of lines cleared
   int clearLines() {
-    int linesCleared = 0;
-    int y = 0;
-
-    while (y < height) {
+    // Collect all full lines first
+    final fullLines = <int>[];
+    for (int y = 0; y < height; y++) {
       if (_isLineFull(y)) {
-        _removeLine(y);
-        linesCleared++;
-      } else {
-        y++;
+        fullLines.add(y);
       }
     }
 
-    return linesCleared;
+    if (fullLines.isEmpty) return 0;
+
+    // Remove full lines by shifting rows down
+    // Process from bottom to top to maintain correct indices
+    int writeY = 0;
+    int readY = 0;
+    int fullLineIndex = 0;
+
+    // Create new grid with cleared lines removed
+    final newGrid = List.generate(
+      height,
+      (_) => List.generate(width, (_) => Cell.empty),
+    );
+
+    // Copy non-full lines to new grid
+    for (int y = 0; y < height; y++) {
+      if (fullLineIndex < fullLines.length && y == fullLines[fullLineIndex]) {
+        // Skip this full line
+        fullLineIndex++;
+      } else {
+        // Copy this line to new grid
+        for (int x = 0; x < width; x++) {
+          newGrid[writeY][x] = _grid[y][x];
+        }
+        writeY++;
+      }
+    }
+
+    // Replace grid
+    _grid = newGrid;
+
+    return fullLines.length;
   }
 
   /// Get rows that are full (for animation)
@@ -112,14 +139,6 @@ class Board {
       }
     }
     return true;
-  }
-
-  /// Remove a line and shift everything above down
-  void _removeLine(int lineY) {
-    for (int y = lineY; y < height - 1; y++) {
-      _grid[y] = List.from(_grid[y + 1]);
-    }
-    _grid[height - 1] = List.generate(width, (_) => Cell.empty);
   }
 
   /// Check if the board is empty (perfect clear)

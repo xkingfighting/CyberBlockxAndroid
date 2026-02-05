@@ -5,6 +5,8 @@ import '../../core/game_state.dart';
 import '../../game/cyber_blockx_game.dart';
 import '../../services/audio_manager.dart';
 import '../../services/leaderboard_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/global_leaderboard_service.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/touch_controls.dart';
@@ -40,6 +42,7 @@ class _GameScreenState extends State<GameScreen> {
   // High score dialog state
   bool _showHighScoreDialog = false;
   bool _highScoreSubmitted = false;
+  bool _scoreSynced = false; // Whether the score was synced to cloud
   int _scoreRank = 0;
 
   @override
@@ -60,6 +63,7 @@ class _GameScreenState extends State<GameScreen> {
     _gameStartTime = DateTime.now();
     _showHighScoreDialog = false;
     _highScoreSubmitted = false;
+    _scoreSynced = false;
     _scoreRank = 0;
   }
 
@@ -113,19 +117,40 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  Future<void> _submitScore(String name, {bool navigateToLeaderboard = false}) async {
+  Future<void> _submitScore(String name, {bool syncToCloud = false, bool navigateToLeaderboard = false}) async {
     if (_highScoreSubmitted) return;
     _highScoreSubmitted = true;
 
+    bool didSync = false;
+
+    // Upload to cloud if requested
+    if (syncToCloud && AuthService.instance.isBound) {
+      debugPrint('GameScreen: Uploading score to cloud...');
+      final result = await GlobalLeaderboardService.instance.submitScore(
+        score: _gameState.scoring.score,
+        lines: _gameState.scoring.totalLines,
+        source: 'game_daily',
+      );
+      if (result != null) {
+        debugPrint('GameScreen: Score uploaded successfully, isNewRecord=${result.isNewRecord}, rank=${result.rank}');
+        didSync = true;
+      } else {
+        debugPrint('GameScreen: Score upload failed');
+      }
+    }
+
+    // Save to local leaderboard with sync status
     await LeaderboardService.instance.addScore(
       score: _gameState.scoring.score,
       level: _gameState.scoring.level,
       lines: _gameState.scoring.totalLines,
       name: name,
+      isSynced: didSync,
     );
 
     setState(() {
       _showHighScoreDialog = false;
+      _scoreSynced = didSync;
     });
 
     // Navigate to leaderboard after submitting high score
@@ -283,8 +308,8 @@ class _GameScreenState extends State<GameScreen> {
                   onSkip: () {
                     _submitScore('Player');
                   },
-                  onSubmit: (name) {
-                    _submitScore(name, navigateToLeaderboard: true);
+                  onSubmit: (name, syncToCloud) async {
+                    await _submitScore(name, syncToCloud: syncToCloud, navigateToLeaderboard: true);
                   },
                 ),
               ),
@@ -298,6 +323,7 @@ class _GameScreenState extends State<GameScreen> {
                   lines: _gameState.scoring.totalLines,
                   maxCombo: _maxCombo,
                   playTime: _playTime,
+                  alreadySynced: _scoreSynced,
                   onRestart: () {
                     _startNewGame();
                     _audio.onGameStart();

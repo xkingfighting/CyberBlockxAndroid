@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/menu_background.dart';
 import '../../services/localization_service.dart';
+import '../../services/auth_service.dart';
 
 class MenuScreen extends StatefulWidget {
   final VoidCallback onStartGame;
   final VoidCallback onSettings;
   final VoidCallback onLeaderboard;
   final VoidCallback? onControls;
+  final VoidCallback? onBind;
 
   const MenuScreen({
     super.key,
@@ -15,6 +17,7 @@ class MenuScreen extends StatefulWidget {
     required this.onSettings,
     required this.onLeaderboard,
     this.onControls,
+    this.onBind,
   });
 
   @override
@@ -226,51 +229,79 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildMenuSection() {
-    return Column(
-      children: [
-        // START GAME text
-        Text(
-          L.startGame.tr,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'monospace',
-            color: Colors.white.withOpacity(0.9),
-            letterSpacing: 3,
-          ),
-        ),
-        const SizedBox(height: 16),
+    return ListenableBuilder(
+      listenable: AuthService.instance,
+      builder: (context, _) {
+        final isBound = AuthService.instance.isBound;
 
-        // Menu buttons - all 3 in one row (matching iOS layout)
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _MenuButton(
-                title: L.leaderboard.tr,
-                icon: Icons.emoji_events,
-                color: CyberColors.yellow,
-                onTap: widget.onLeaderboard,
+        return Column(
+          children: [
+            // START GAME text
+            Text(
+              L.startGame.tr,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace',
+                color: Colors.white.withOpacity(0.9),
+                letterSpacing: 3,
               ),
-              const SizedBox(width: 12),
-              _MenuButton(
-                title: L.settings.tr,
-                icon: Icons.settings,
-                color: CyberColors.cyan,
-                onTap: widget.onSettings,
+            ),
+            const SizedBox(height: 16),
+
+            // Menu buttons - Row 1: LEADERBOARD, SETTINGS
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _MenuButton(
+                    title: L.leaderboard.tr,
+                    icon: Icons.emoji_events,
+                    color: CyberColors.yellow,
+                    onTap: widget.onLeaderboard,
+                  ),
+                  const SizedBox(width: 12),
+                  _MenuButton(
+                    title: L.settings.tr,
+                    icon: Icons.settings,
+                    color: CyberColors.cyan,
+                    onTap: widget.onSettings,
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              _MenuButton(
-                title: L.controls.tr,
-                icon: Icons.gamepad,
-                color: CyberColors.cyan,
-                onTap: widget.onControls ?? () {},
+            ),
+            const SizedBox(height: 12),
+
+            // Menu buttons - Row 2: CONTROLS, BIND
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _MenuButton(
+                    title: L.controls.tr,
+                    icon: Icons.gamepad,
+                    color: CyberColors.cyan,
+                    onTap: widget.onControls ?? () {},
+                  ),
+                  const SizedBox(width: 12),
+                  _MenuButton(
+                    title: isBound
+                        ? AuthService.instance.shortWalletAddress
+                        : L.bindWallet.tr,
+                    icon: isBound
+                        ? Icons.check_circle
+                        : Icons.account_balance_wallet,
+                    color: isBound ? CyberColors.green : CyberColors.purple,
+                    onTap: widget.onBind ?? () {},
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
