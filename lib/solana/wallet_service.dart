@@ -63,9 +63,10 @@ class WalletService extends ChangeNotifier {
   // Pending sign result (for cold start recovery)
   String? _pendingSignResult;
 
-  // Phantom deep link URLs
-  static const _phantomConnectUrl = 'https://phantom.app/ul/v1/connect';
-  static const _phantomSignMessageUrl = 'https://phantom.app/ul/v1/signMessage';
+  // Phantom deep link URLs - use phantom:// scheme for Android, https:// for iOS
+  // Android prefers the custom scheme for direct app-to-app communication
+  static const _phantomConnectUrl = 'phantom://v1/connect';
+  static const _phantomSignMessageUrl = 'phantom://v1/signMessage';
 
   // Solflare deep link URLs - use https:// universal links
   static const _solflareConnectUrl = 'https://solflare.com/ul/v1/connect';
@@ -691,6 +692,10 @@ class WalletService extends ChangeNotifier {
       final connectUri = Uri.parse('$connectBaseUrl?$queryString');
       debugPrint('Opening ${wallet.name} with deep link: $connectUri');
 
+      // Create a completer to wait for the callback BEFORE launching
+      // This prevents race condition where callback arrives before completer exists
+      _deepLinkCompleter = Completer<String?>();
+
       // Launch wallet
       final launched = await launchUrl(
         connectUri,
@@ -701,13 +706,11 @@ class WalletService extends ChangeNotifier {
         _errorMessage = 'Could not open ${wallet.name}. Please make sure it is installed.';
         _isConnecting = false;
         _deepLinkWallet = null;
+        _deepLinkCompleter = null;
         await _clearDeepLinkState();
         notifyListeners();
         return null;
       }
-
-      // Create a completer to wait for the callback
-      _deepLinkCompleter = Completer<String?>();
 
       // Wait for the callback (with timeout)
       final result = await _deepLinkCompleter!.future.timeout(
@@ -924,7 +927,8 @@ class WalletService extends ChangeNotifier {
       // Save state for cold start recovery BEFORE launching wallet
       await _saveSignState();
 
-      // Create a completer to wait for the callback
+      // Create a completer to wait for the callback BEFORE launching
+      // This prevents race condition where callback arrives before completer exists
       _deepLinkCompleter = Completer<String?>();
 
       // Launch wallet
@@ -935,6 +939,7 @@ class WalletService extends ChangeNotifier {
 
       if (!launched) {
         _errorMessage = 'Could not open ${wallet.name}';
+        _deepLinkCompleter = null;
         await _clearSignState();
         notifyListeners();
         return null;

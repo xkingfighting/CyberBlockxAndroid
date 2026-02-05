@@ -30,6 +30,29 @@
 -keep class com.solana.** { *; }
 -keep class com.solanamobile.** { *; }
 
+# URL Launcher
+-keep class io.flutter.plugins.urllauncher.** { *; }
+
+# App Links
+-keep class com.llfbandit.app_links.** { *; }
+
+# Crypto / PineNaCl / TweetNaCl
+-keep class org.libsodium.** { *; }
+-keep class com.goterl.lazysodium.** { *; }
+-keep class pinenacl.** { *; }
+-keep class tweetnacl.** { *; }
+-dontwarn org.libsodium.**
+-dontwarn pinenacl.**
+
+# Keep Dart/Flutter crypto classes
+-keep class io.flutter.plugins.** { *; }
+-keepclassmembers class * {
+    @com.sun.jna.** *;
+}
+
+# Flutter Secure Storage
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+
 # Gson (if used)
 -keepattributes Signature
 -keepattributes *Annotation*

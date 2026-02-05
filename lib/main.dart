@@ -59,8 +59,11 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<_MainNavigatorState> mainNavigatorKey = GlobalKey<_MainNavigatorState>();
 
 void _initDeepLinks() {
+  debugPrint('=== Deep link listener initialized ===');
+
   // Handle initial link if app was started from a deep link (cold start)
   _appLinks.getInitialLink().then((uri) {
+    debugPrint('getInitialLink result: $uri');
     if (uri != null) {
       debugPrint('Initial deep link (cold start): $uri');
       WalletService.instance.handleDeepLink(uri);
@@ -85,10 +88,20 @@ void _initDeepLinks() {
   });
 
   // Listen for incoming links while app is running
-  _appLinks.uriLinkStream.listen((uri) {
-    debugPrint('Incoming deep link: $uri');
-    WalletService.instance.handleDeepLink(uri);
-  });
+  _appLinks.uriLinkStream.listen(
+    (uri) {
+      debugPrint('=== Incoming deep link (warm start) ===');
+      debugPrint('URI: $uri');
+      debugPrint('Scheme: ${uri.scheme}');
+      debugPrint('Host: ${uri.host}');
+      debugPrint('Path: ${uri.path}');
+      debugPrint('Query params: ${uri.queryParameters.keys.toList()}');
+      WalletService.instance.handleDeepLink(uri);
+    },
+    onError: (error) {
+      debugPrint('Deep link stream error: $error');
+    },
+  );
 }
 
 class CyberBlockxApp extends StatelessWidget {
