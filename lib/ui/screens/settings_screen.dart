@@ -47,7 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.3),
+                            color: Colors.grey.withValues(alpha: 0.3),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -208,10 +208,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: CyberColors.cyan.withOpacity(0.3),
+          color: CyberColors.cyan.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -224,10 +224,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: CyberColors.cyan.withOpacity(0.5),
+          color: CyberColors.cyan.withValues(alpha: 0.5),
           width: 1,
         ),
       ),
@@ -238,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           dropdownColor: CyberColors.surface,
           icon: Icon(
             Icons.unfold_more,
-            color: CyberColors.cyan.withOpacity(0.7),
+            color: CyberColors.cyan.withValues(alpha: 0.7),
             size: 20,
           ),
           style: const TextStyle(
@@ -283,9 +283,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           value: value,
           onChanged: onChanged,
           activeColor: color,
-          activeTrackColor: color.withOpacity(0.3),
+          activeTrackColor: color.withValues(alpha: 0.3),
           inactiveThumbColor: Colors.grey,
-          inactiveTrackColor: Colors.grey.withOpacity(0.3),
+          inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
         ),
       ],
     );
@@ -329,9 +329,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SliderTheme(
             data: SliderThemeData(
               activeTrackColor: color,
-              inactiveTrackColor: color.withOpacity(0.2),
+              inactiveTrackColor: color.withValues(alpha: 0.2),
               thumbColor: Colors.white,
-              overlayColor: color.withOpacity(0.2),
+              overlayColor: color.withValues(alpha: 0.2),
               trackHeight: 6,
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
             ),

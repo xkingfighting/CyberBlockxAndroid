@@ -91,7 +91,6 @@ class Board {
     // Remove full lines by shifting rows down
     // Process from bottom to top to maintain correct indices
     int writeY = 0;
-    int readY = 0;
     int fullLineIndex = 0;
 
     // Create new grid with cleared lines removed

@@ -39,7 +39,7 @@ class ControlsScreen extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -107,10 +107,10 @@ class ControlsScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: CyberColors.green.withOpacity(0.3),
+          color: CyberColors.green.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -138,10 +138,10 @@ class ControlsScreen extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: color.withOpacity(0.4),
+                color: color.withValues(alpha: 0.4),
                 width: 1,
               ),
             ),
@@ -170,10 +170,10 @@ class ControlsScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: CyberColors.green.withOpacity(0.3),
+          color: CyberColors.green.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -198,7 +198,7 @@ class ControlsScreen extends StatelessWidget {
           '•',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
           ),
         ),
         const SizedBox(width: 12),
@@ -208,7 +208,7 @@ class ControlsScreen extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontFamily: 'monospace',
-              color: Colors.white.withOpacity(0.6),
+              color: Colors.white.withValues(alpha: 0.6),
               height: 1.4,
             ),
           ),

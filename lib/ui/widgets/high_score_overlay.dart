@@ -100,7 +100,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
         return Container(
           width: double.infinity,
           height: double.infinity,
-          color: Colors.black.withOpacity(0.7),
+          color: Colors.black.withValues(alpha: 0.7),
           child: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -117,13 +117,13 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        CyberColors.cyan.withOpacity(0.6),
-                        CyberColors.purple.withOpacity(0.4),
+                        CyberColors.cyan.withValues(alpha: 0.6),
+                        CyberColors.purple.withValues(alpha: 0.4),
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: CyberColors.cyan.withOpacity(0.2),
+                        color: CyberColors.cyan.withValues(alpha: 0.2),
                         blurRadius: 30,
                       ),
                     ],
@@ -178,7 +178,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'monospace',
-                            color: CyberColors.cyan.withOpacity(0.9),
+                            color: CyberColors.cyan.withValues(alpha: 0.9),
                             letterSpacing: 2,
                           ),
                         ),
@@ -226,13 +226,13 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: _syncToCloud
-            ? CyberColors.green.withOpacity(0.1)
-            : Colors.grey.withOpacity(0.1),
+            ? CyberColors.green.withValues(alpha: 0.1)
+            : Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: _syncToCloud
-              ? CyberColors.green.withOpacity(0.3)
-              : Colors.grey.withOpacity(0.3),
+              ? CyberColors.green.withValues(alpha: 0.3)
+              : Colors.grey.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -264,7 +264,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                 });
               },
               activeColor: CyberColors.green,
-              activeTrackColor: CyberColors.green.withOpacity(0.3),
+              activeTrackColor: CyberColors.green.withValues(alpha: 0.3),
               inactiveThumbColor: Colors.grey[600],
               inactiveTrackColor: Colors.grey[800],
             ),
@@ -290,7 +290,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                 size: 24,
                 shadows: [
                   Shadow(
-                    color: CyberColors.yellow.withOpacity(0.5),
+                    color: CyberColors.yellow.withValues(alpha: 0.5),
                     blurRadius: 8,
                   ),
                 ],
@@ -311,7 +311,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                   letterSpacing: 2,
                   shadows: [
                     Shadow(
-                      color: CyberColors.yellow.withOpacity(0.5),
+                      color: CyberColors.yellow.withValues(alpha: 0.5),
                       blurRadius: 10,
                     ),
                   ],
@@ -328,7 +328,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                 size: 24,
                 shadows: [
                   Shadow(
-                    color: CyberColors.yellow.withOpacity(0.5),
+                    color: CyberColors.yellow.withValues(alpha: 0.5),
                     blurRadius: 8,
                   ),
                 ],
@@ -358,7 +358,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
           shadows: [
             // Subtle cyan glow only
             Shadow(
-              color: CyberColors.cyan.withOpacity(0.5),
+              color: CyberColors.cyan.withValues(alpha: 0.5),
               blurRadius: 10,
             ),
           ],
@@ -376,7 +376,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: CyberColors.cyan.withOpacity(0.5),
+              color: CyberColors.cyan.withValues(alpha: 0.5),
               width: 2,
             ),
           ),
@@ -427,8 +427,8 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: _isSubmitting
-                    ? Colors.grey.withOpacity(0.3)
-                    : Colors.grey.withOpacity(0.5),
+                    ? Colors.grey.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),
@@ -468,7 +468,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                 ? []
                 : [
                     BoxShadow(
-                      color: CyberColors.green.withOpacity(0.4),
+                      color: CyberColors.green.withValues(alpha: 0.4),
                       blurRadius: 8,
                     ),
                   ],
@@ -488,7 +488,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
               else
                 Icon(
                   Icons.check_circle,
-                  color: Colors.black.withOpacity(0.8),
+                  color: Colors.black.withValues(alpha: 0.8),
                   size: 20,
                 ),
               const SizedBox(width: 8),
@@ -500,7 +500,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                   fontFamily: 'monospace',
                   color: _isSubmitting
                       ? Colors.grey[400]
-                      : Colors.black.withOpacity(0.9),
+                      : Colors.black.withValues(alpha: 0.9),
                 ),
               ),
             ],

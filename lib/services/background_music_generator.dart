@@ -213,8 +213,6 @@ class _MusicGenerator {
     final phases = List<double>.filled(chordNotes.length, 0);
 
     for (var frame = 0; frame < frameCount; frame++) {
-      final time = frame / params.sampleRate;
-
       // LFO for modulation
       lfoPhase += lfoRate / params.sampleRate;
       if (lfoPhase > 1.0) lfoPhase -= 1.0;

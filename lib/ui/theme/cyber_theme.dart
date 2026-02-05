@@ -149,12 +149,12 @@ class GlowingContainer extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: CyberColors.surface.withOpacity(0.8),
+        color: CyberColors.surface.withValues(alpha: 0.8),
         borderRadius: radius,
-        border: Border.all(color: glowColor.withOpacity(0.6), width: 1.5),
+        border: Border.all(color: glowColor.withValues(alpha: 0.6), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.2),
+            color: glowColor.withValues(alpha: 0.2),
             blurRadius: glowRadius,
             spreadRadius: 0,
           ),
@@ -210,7 +210,7 @@ class _CyberButtonState extends State<CyberButton> {
           ),
           boxShadow: [
             BoxShadow(
-              color: widget.color.withOpacity(_isPressed ? 0.5 : 0.2),
+              color: widget.color.withValues(alpha: _isPressed ? 0.5 : 0.2),
               blurRadius: _isPressed ? 15 : 8,
             ),
           ],

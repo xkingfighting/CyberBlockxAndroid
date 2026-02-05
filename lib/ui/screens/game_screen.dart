@@ -129,6 +129,7 @@ class _GameScreenState extends State<GameScreen> {
       final result = await GlobalLeaderboardService.instance.submitScore(
         score: _gameState.scoring.score,
         lines: _gameState.scoring.totalLines,
+        level: _gameState.scoring.level,
         source: 'game_daily',
       );
       if (result != null) {

@@ -123,7 +123,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.3),
+              color: Colors.grey.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -140,17 +140,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   Widget _buildTabBar() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: CyberColors.cyan.withOpacity(0.3),
+          color: CyberColors.cyan.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: CyberColors.cyan.withOpacity(0.2),
+          color: CyberColors.cyan.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: CyberColors.cyan,
@@ -295,10 +295,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: CyberColors.cyan.withOpacity(0.1),
+        color: CyberColors.cyan.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: CyberColors.cyan.withOpacity(0.3),
+          color: CyberColors.cyan.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -312,7 +312,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: CyberColors.cyan.withOpacity(0.8),
+                color: CyberColors.cyan.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -324,7 +324,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: CyberColors.cyan.withOpacity(0.8),
+                color: CyberColors.cyan.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -336,7 +336,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: CyberColors.cyan.withOpacity(0.8),
+                color: CyberColors.cyan.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -348,7 +348,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: CyberColors.cyan.withOpacity(0.8),
+                color: CyberColors.cyan.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -360,7 +360,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: CyberColors.cyan.withOpacity(0.8),
+                color: CyberColors.cyan.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -377,7 +377,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           Icon(
             Icons.emoji_events_outlined,
             size: 64,
-            color: CyberColors.yellow.withOpacity(0.3),
+            color: CyberColors.yellow.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -385,7 +385,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             style: TextStyle(
               fontSize: 18,
               fontFamily: 'monospace',
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 8),
@@ -394,7 +394,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             style: TextStyle(
               fontSize: 14,
               fontFamily: 'monospace',
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
             ),
           ),
         ],
@@ -410,7 +410,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           Icon(
             Icons.lock_outline,
             size: 64,
-            color: CyberColors.purple.withOpacity(0.5),
+            color: CyberColors.purple.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Padding(
@@ -459,7 +459,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           Icon(
             Icons.error_outline,
             size: 64,
-            color: CyberColors.red.withOpacity(0.5),
+            color: CyberColors.red.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -593,10 +593,10 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: rank <= 3 ? rankColor.withOpacity(0.1) : Colors.black.withOpacity(0.3),
+        color: rank <= 3 ? rankColor.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: rank <= 3 ? rankColor.withOpacity(0.4) : CyberColors.cyan.withOpacity(0.2),
+          color: rank <= 3 ? rankColor.withValues(alpha: 0.4) : CyberColors.cyan.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -627,7 +627,7 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
                       fontSize: 14,
                       fontWeight: rank <= 3 ? FontWeight.bold : FontWeight.normal,
                       fontFamily: 'monospace',
-                      color: rank <= 3 ? rankColor : Colors.white.withOpacity(0.9),
+                      color: rank <= 3 ? rankColor : Colors.white.withValues(alpha: 0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -639,7 +639,7 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
                     message: L.syncedToCloud.tr,
                     child: Icon(
                       Icons.cloud_done,
-                      color: CyberColors.green.withOpacity(0.8),
+                      color: CyberColors.green.withValues(alpha: 0.8),
                       size: 14,
                     ),
                   ),
@@ -695,7 +695,7 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
       case 3:
         return (CyberColors.orange, Icons.emoji_events);
       default:
-        return (Colors.white.withOpacity(0.7), null);
+        return (Colors.white.withValues(alpha: 0.7), null);
     }
   }
 
@@ -810,17 +810,17 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: isCurrentUser
-            ? CyberColors.green.withOpacity(0.15)
+            ? CyberColors.green.withValues(alpha: 0.15)
             : rank <= 3
-                ? rankColor.withOpacity(0.1)
-                : Colors.black.withOpacity(0.3),
+                ? rankColor.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: isCurrentUser
-              ? CyberColors.green.withOpacity(0.6)
+              ? CyberColors.green.withValues(alpha: 0.6)
               : rank <= 3
-                  ? rankColor.withOpacity(0.4)
-                  : CyberColors.cyan.withOpacity(0.2),
+                  ? rankColor.withValues(alpha: 0.4)
+                  : CyberColors.cyan.withValues(alpha: 0.2),
           width: isCurrentUser ? 2 : 1,
         ),
       ),
@@ -859,7 +859,7 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
                           ? CyberColors.green
                           : rank <= 3
                               ? rankColor
-                              : Colors.white.withOpacity(0.9),
+                              : Colors.white.withValues(alpha: 0.9),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -915,7 +915,7 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
       case 3:
         return (CyberColors.orange, Icons.emoji_events);
       default:
-        return (Colors.white.withOpacity(0.7), null);
+        return (Colors.white.withValues(alpha: 0.7), null);
     }
   }
 

@@ -9,6 +9,7 @@ import 'ui/screens/settings_screen.dart';
 import 'ui/screens/leaderboard_screen.dart';
 import 'ui/screens/controls_screen.dart';
 import 'ui/screens/bind_account_screen.dart';
+import 'ui/screens/badges_screen.dart';
 import 'services/audio_manager.dart';
 import 'services/leaderboard_service.dart';
 import 'services/localization_service.dart';
@@ -127,11 +128,57 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
   bool _showLeaderboard = false;
   bool _showControls = false;
   bool _showBind = false;
+  bool _showBadges = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Show exit confirmation dialog
+  Future<bool> _showExitConfirmation() async {
+    final loc = LocalizationService.instance;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (context) => _ExitConfirmDialog(
+        title: loc.tr(L.exitConfirmTitle),
+        message: loc.tr(L.exitConfirmMessage),
+        confirmText: loc.tr(L.exitConfirmYes),
+        cancelText: loc.tr(L.exitConfirmNo),
+      ),
+    );
+    return result ?? false;
+  }
+
+  /// Handle back navigation
+  Future<bool> _onPopInvoked(bool didPop) async {
+    if (didPop) return true;
+
+    // If on a sub-screen, go back to menu
+    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges) {
+      setState(() {
+        _showSettings = false;
+        _showLeaderboard = false;
+        _showControls = false;
+        _showBind = false;
+        _showBadges = false;
+      });
+      return false;
+    }
+
+    // If playing game, let game handle it
+    if (_isPlaying) {
+      return false;
+    }
+
+    // On menu, show exit confirmation
+    final shouldExit = await _showExitConfirmation();
+    if (shouldExit && mounted) {
+      SystemNavigator.pop();
+    }
+    return false;
   }
 
   /// Navigate to the bind screen (used for cold start deep link handling)
@@ -143,6 +190,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         _showLeaderboard = false;
         _showControls = false;
         _showBind = true;
+        _showBadges = false;
       });
     }
   }
@@ -176,8 +224,10 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
+    Widget content;
+
     if (_isPlaying) {
-      return GameScreen(
+      content = GameScreen(
         onReturnToMenu: () {
           AudioManager.instance.onReturnToMenu();
           setState(() => _isPlaying = false);
@@ -190,43 +240,201 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
           });
         },
       );
-    }
-
-    if (_showSettings) {
-      return SettingsScreen(
+    } else if (_showSettings) {
+      content = SettingsScreen(
         onClose: () => setState(() => _showSettings = false),
       );
-    }
-
-    if (_showLeaderboard) {
-      return LeaderboardScreen(
+    } else if (_showLeaderboard) {
+      content = LeaderboardScreen(
         onClose: () => setState(() => _showLeaderboard = false),
         onBind: () => setState(() {
           _showLeaderboard = false;
           _showBind = true;
         }),
       );
-    }
-
-    if (_showControls) {
-      return ControlsScreen(
+    } else if (_showControls) {
+      content = ControlsScreen(
         onClose: () => setState(() => _showControls = false),
       );
-    }
-
-    if (_showBind) {
-      return BindAccountScreen(
+    } else if (_showBind) {
+      content = BindAccountScreen(
         onClose: () => setState(() => _showBind = false),
         onBindSuccess: () => setState(() => _showBind = false),
       );
+    } else if (_showBadges) {
+      content = BadgesScreen(
+        onClose: () => setState(() => _showBadges = false),
+      );
+    } else {
+      content = MenuScreen(
+        onStartGame: () => setState(() => _isPlaying = true),
+        onSettings: () => setState(() => _showSettings = true),
+        onLeaderboard: () => setState(() => _showLeaderboard = true),
+        onControls: () => setState(() => _showControls = true),
+        onBind: () => setState(() => _showBind = true),
+        onBadges: () => setState(() => _showBadges = true),
+      );
     }
 
-    return MenuScreen(
-      onStartGame: () => setState(() => _isPlaying = true),
-      onSettings: () => setState(() => _showSettings = true),
-      onLeaderboard: () => setState(() => _showLeaderboard = true),
-      onControls: () => setState(() => _showControls = true),
-      onBind: () => setState(() => _showBind = true),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) => _onPopInvoked(didPop),
+      child: content,
+    );
+  }
+}
+
+/// Exit confirmation dialog with cyber theme styling
+class _ExitConfirmDialog extends StatelessWidget {
+  final String title;
+  final String message;
+  final String confirmText;
+  final String cancelText;
+
+  const _ExitConfirmDialog({
+    required this.title,
+    required this.message,
+    required this.confirmText,
+    required this.cancelText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: CyberColors.background,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: CyberColors.cyan.withValues(alpha: 0.5),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: CyberColors.cyan.withValues(alpha: 0.3),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title
+            Text(
+              title,
+              style: TextStyle(
+                fontFamily: 'Orbitron',
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: CyberColors.cyan,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Message
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Orbitron',
+                fontSize: 14,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Buttons
+            Row(
+              children: [
+                // Cancel button
+                Expanded(
+                  child: _DialogButton(
+                    text: cancelText,
+                    onTap: () => Navigator.of(context).pop(false),
+                    isPrimary: false,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Confirm button
+                Expanded(
+                  child: _DialogButton(
+                    text: confirmText,
+                    onTap: () => Navigator.of(context).pop(true),
+                    isPrimary: true,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Styled button for exit dialog
+class _DialogButton extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  final bool isPrimary;
+
+  const _DialogButton({
+    required this.text,
+    required this.onTap,
+    required this.isPrimary,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isPrimary ? CyberColors.pink : CyberColors.cyan;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: color.withValues(alpha: 0.7),
+              width: 2,
+            ),
+            gradient: isPrimary
+                ? LinearGradient(
+                    colors: [
+                      color.withValues(alpha: 0.3),
+                      color.withValues(alpha: 0.1),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  )
+                : null,
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.3),
+                blurRadius: 8,
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontFamily: 'Orbitron',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

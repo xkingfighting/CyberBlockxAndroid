@@ -10,6 +10,7 @@ class MenuScreen extends StatefulWidget {
   final VoidCallback onLeaderboard;
   final VoidCallback? onControls;
   final VoidCallback? onBind;
+  final VoidCallback? onBadges;
 
   const MenuScreen({
     super.key,
@@ -18,6 +19,7 @@ class MenuScreen extends StatefulWidget {
     required this.onLeaderboard,
     this.onControls,
     this.onBind,
+    this.onBadges,
   });
 
   @override
@@ -88,7 +90,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                               style: TextStyle(
                                 fontSize: 14,
                                 fontFamily: 'monospace',
-                                color: Colors.grey.withOpacity(0.5),
+                                color: Colors.grey.withValues(alpha: 0.5),
                               ),
                             ),
 
@@ -147,7 +149,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                   letterSpacing: letterSpacing,
                   shadows: [
                     Shadow(
-                      color: const Color(0xFF00FFFF).withOpacity(_glowAnimation.value * 0.8),
+                      color: const Color(0xFF00FFFF).withValues(alpha: _glowAnimation.value * 0.8),
                       blurRadius: _glowAnimation.value * 25,
                     ),
                     // Extra shadow for bolder text
@@ -184,7 +186,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                       letterSpacing: letterSpacing,
                       shadows: [
                         Shadow(
-                          color: const Color(0xFFFF00FF).withOpacity(_glowAnimation.value * 0.7),
+                          color: const Color(0xFFFF00FF).withValues(alpha: _glowAnimation.value * 0.7),
                           blurRadius: _glowAnimation.value * 25,
                         ),
                         // Extra shadow for bolder text
@@ -208,7 +210,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                     letterSpacing: letterSpacing,
                     shadows: [
                       Shadow(
-                        color: const Color(0xFFFF4444).withOpacity(_glowAnimation.value),
+                        color: const Color(0xFFFF4444).withValues(alpha: _glowAnimation.value),
                         blurRadius: _glowAnimation.value * 30,
                       ),
                       // Extra shadow for bolder text
@@ -243,13 +245,13 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'monospace',
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 letterSpacing: 3,
               ),
             ),
             const SizedBox(height: 16),
 
-            // Menu buttons - Row 1: LEADERBOARD, SETTINGS
+            // Menu buttons - Row 1: LEADERBOARD, SETTINGS, CONTROLS
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
@@ -261,31 +263,31 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                     color: CyberColors.yellow,
                     onTap: widget.onLeaderboard,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   _MenuButton(
                     title: L.settings.tr,
                     icon: Icons.settings,
                     color: CyberColors.cyan,
                     onTap: widget.onSettings,
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Menu buttons - Row 2: CONTROLS, BIND
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                  const SizedBox(width: 10),
                   _MenuButton(
                     title: L.controls.tr,
                     icon: Icons.gamepad,
                     color: CyberColors.cyan,
                     onTap: widget.onControls ?? () {},
                   ),
-                  const SizedBox(width: 12),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Menu buttons - Row 2: BIND, BADGES (only when bound)
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
                   _MenuButton(
                     title: isBound
                         ? AuthService.instance.shortWalletAddress
@@ -296,6 +298,15 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                     color: isBound ? CyberColors.green : CyberColors.purple,
                     onTap: widget.onBind ?? () {},
                   ),
+                  if (isBound) ...[
+                    const SizedBox(width: 10),
+                    _MenuButton(
+                      title: L.badges.tr,
+                      icon: Icons.military_tech,
+                      color: CyberColors.orange,
+                      onTap: widget.onBadges ?? () {},
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -312,8 +323,8 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
         ShaderMask(
           shaderCallback: (bounds) => LinearGradient(
             colors: [
-              CyberColors.cyan.withOpacity(0.6),
-              CyberColors.purple.withOpacity(0.6),
+              CyberColors.cyan.withValues(alpha: 0.6),
+              CyberColors.purple.withValues(alpha: 0.6),
             ],
           ).createShader(bounds),
           child: const Text(
@@ -334,7 +345,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
             fontSize: 8,
             fontFamily: 'monospace',
             letterSpacing: 0.5,
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withValues(alpha: 0.5),
           ),
         ),
       ],
@@ -376,16 +387,16 @@ class _MenuButtonState extends State<_MenuButton> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: _isPressed ? widget.color.withOpacity(0.2) : Colors.transparent,
+          color: _isPressed ? widget.color.withValues(alpha: 0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: _isPressed ? widget.color : widget.color.withOpacity(0.5),
+            color: _isPressed ? widget.color : widget.color.withValues(alpha: 0.5),
             width: 1.5,
           ),
           boxShadow: _isPressed
               ? [
                   BoxShadow(
-                    color: widget.color.withOpacity(0.3),
+                    color: widget.color.withValues(alpha: 0.3),
                     blurRadius: 10,
                   ),
                 ]

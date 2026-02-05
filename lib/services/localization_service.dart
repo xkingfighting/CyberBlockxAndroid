@@ -34,6 +34,17 @@ enum L {
   settings,
   controls,
   leaderboard,
+  badges,
+  badgeUnlocked,
+  badgeLocked,
+  tapToClose,
+  errorConnectWalletFirst,
+  errorAuthFailed,
+  errorLoadBadgesFailed,
+  exitConfirmTitle,
+  exitConfirmMessage,
+  exitConfirmYes,
+  exitConfirmNo,
   quit,
 
   // Pause
@@ -106,6 +117,7 @@ enum L {
   // Wallet Binding
   bindWallet,
   connectWallet,
+  unlockGlobalRank,
   bindDescription,
   benefitGlobalRanking,
   benefitCloudSync,
@@ -175,6 +187,12 @@ class LocalizationService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Get the effective language code for API requests
+  String get apiLanguageCode => effectiveLanguage.code;
+
+  /// Get the effective language (resolves 'system' to actual device language)
+  AppLanguage get effectiveLanguage => _effectiveLanguage;
+
   AppLanguage get _effectiveLanguage {
     if (_currentLanguage != AppLanguage.system) {
       return _currentLanguage;
@@ -221,6 +239,17 @@ class LocalizationService extends ChangeNotifier {
       L.settings: 'SETTINGS',
       L.controls: 'CONTROLS',
       L.leaderboard: 'LEADERBOARD',
+      L.badges: 'BADGES',
+      L.badgeUnlocked: 'UNLOCKED',
+      L.badgeLocked: 'LOCKED',
+      L.tapToClose: 'Tap anywhere to close',
+      L.errorConnectWalletFirst: 'Please connect wallet first',
+      L.errorAuthFailed: 'Authentication failed',
+      L.errorLoadBadgesFailed: 'Failed to load badges',
+      L.exitConfirmTitle: 'Exit Game',
+      L.exitConfirmMessage: 'Are you sure you want to exit?',
+      L.exitConfirmYes: 'EXIT',
+      L.exitConfirmNo: 'CANCEL',
       L.quit: 'QUIT',
       L.paused: 'PAUSED',
       L.resume: 'RESUME',
@@ -276,6 +305,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: 'BIND WALLET',
       L.connectWallet: 'Connect Wallet',
+      L.unlockGlobalRank: 'Unlock Global Rank',
       L.bindDescription: 'Connect your Solana wallet to unlock global leaderboard and cloud sync features.',
       L.benefitGlobalRanking: 'Global Ranking',
       L.benefitCloudSync: 'Cloud Score Sync',
@@ -325,6 +355,17 @@ class LocalizationService extends ChangeNotifier {
       L.settings: '设置',
       L.controls: '操作说明',
       L.leaderboard: '排行榜',
+      L.badges: '徽章',
+      L.badgeUnlocked: '已解锁',
+      L.badgeLocked: '未解锁',
+      L.tapToClose: '点击任意位置关闭',
+      L.errorConnectWalletFirst: '请先连接钱包',
+      L.errorAuthFailed: '认证失败',
+      L.errorLoadBadgesFailed: '加载徽章失败',
+      L.exitConfirmTitle: '退出游戏',
+      L.exitConfirmMessage: '确定要退出吗？',
+      L.exitConfirmYes: '退出',
+      L.exitConfirmNo: '取消',
       L.quit: '退出',
       L.paused: '暂停',
       L.resume: '继续',
@@ -380,6 +421,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: '绑定钱包',
       L.connectWallet: '连接钱包',
+      L.unlockGlobalRank: '解锁全球排名',
       L.bindDescription: '连接你的 Solana 钱包，解锁全球排行榜和云端同步功能。',
       L.benefitGlobalRanking: '全球排名',
       L.benefitCloudSync: '云端分数同步',
@@ -429,6 +471,17 @@ class LocalizationService extends ChangeNotifier {
       L.settings: '設定',
       L.controls: '操作說明',
       L.leaderboard: '排行榜',
+      L.badges: '徽章',
+      L.badgeUnlocked: '已解鎖',
+      L.badgeLocked: '未解鎖',
+      L.tapToClose: '點擊任意位置關閉',
+      L.errorConnectWalletFirst: '請先連接錢包',
+      L.errorAuthFailed: '認證失敗',
+      L.errorLoadBadgesFailed: '載入徽章失敗',
+      L.exitConfirmTitle: '退出遊戲',
+      L.exitConfirmMessage: '確定要退出嗎？',
+      L.exitConfirmYes: '退出',
+      L.exitConfirmNo: '取消',
       L.quit: '退出',
       L.paused: '暫停',
       L.resume: '繼續',
@@ -484,6 +537,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: '綁定錢包',
       L.connectWallet: '連接錢包',
+      L.unlockGlobalRank: '解鎖全球排名',
       L.bindDescription: '連接你的 Solana 錢包，解鎖全球排行榜和雲端同步功能。',
       L.benefitGlobalRanking: '全球排名',
       L.benefitCloudSync: '雲端分數同步',
@@ -532,6 +586,17 @@ class LocalizationService extends ChangeNotifier {
       L.settings: '設定',
       L.controls: '操作方法',
       L.leaderboard: 'ランキング',
+      L.badges: 'バッジ',
+      L.badgeUnlocked: '取得済み',
+      L.badgeLocked: '未取得',
+      L.tapToClose: 'タップで閉じる',
+      L.errorConnectWalletFirst: '先にウォレットを接続してください',
+      L.errorAuthFailed: '認証に失敗しました',
+      L.errorLoadBadgesFailed: 'バッジの読み込みに失敗しました',
+      L.exitConfirmTitle: 'ゲームを終了',
+      L.exitConfirmMessage: '本当に終了しますか？',
+      L.exitConfirmYes: '終了',
+      L.exitConfirmNo: 'キャンセル',
       L.quit: '終了',
       L.paused: '一時停止',
       L.resume: '再開',
@@ -587,6 +652,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: 'ウォレットを接続',
       L.connectWallet: 'ウォレットを接続',
+      L.unlockGlobalRank: 'グローバルランクを解除',
       L.bindDescription: 'Solanaウォレットを接続して、グローバルランキングとクラウド同期機能を解除しましょう。',
       L.benefitGlobalRanking: 'グローバルランキング',
       L.benefitCloudSync: 'クラウドスコア同期',
@@ -635,6 +701,13 @@ class LocalizationService extends ChangeNotifier {
       L.settings: '설정',
       L.controls: '조작법',
       L.leaderboard: '랭킹',
+      L.badges: '배지',
+      L.badgeUnlocked: '획득함',
+      L.badgeLocked: '미획득',
+      L.tapToClose: '아무 곳이나 탭하여 닫기',
+      L.errorConnectWalletFirst: '먼저 지갑을 연결하세요',
+      L.errorAuthFailed: '인증 실패',
+      L.errorLoadBadgesFailed: '배지 로드 실패',
       L.quit: '종료',
       L.paused: '일시정지',
       L.resume: '계속',
@@ -690,6 +763,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: '지갑 연결',
       L.connectWallet: '지갑 연결',
+      L.unlockGlobalRank: '글로벌 랭크 잠금 해제',
       L.bindDescription: 'Solana 지갑을 연결하여 글로벌 랭킹과 클라우드 동기화 기능을 잠금 해제하세요.',
       L.benefitGlobalRanking: '글로벌 랭킹',
       L.benefitCloudSync: '클라우드 점수 동기화',
@@ -729,6 +803,11 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: '지갑이 없으신가요? QR 코드 표시',
       L.downloadWallet: '지갑 다운로드:',
       L.scanWithWallet: '지갑 앱으로 스캔',
+      // Exit Confirmation
+      L.exitConfirmTitle: '게임 종료',
+      L.exitConfirmMessage: '정말 종료하시겠습니까?',
+      L.exitConfirmYes: '종료',
+      L.exitConfirmNo: '취소',
     },
 
     // French
@@ -738,6 +817,13 @@ class LocalizationService extends ChangeNotifier {
       L.settings: 'PARAMÈTRES',
       L.controls: 'CONTRÔLES',
       L.leaderboard: 'CLASSEMENT',
+      L.badges: 'BADGES',
+      L.badgeUnlocked: 'UNLOCKED',
+      L.badgeLocked: 'LOCKED',
+      L.tapToClose: 'Appuyez n\'importe où pour fermer',
+      L.errorConnectWalletFirst: 'Veuillez d\'abord connecter votre portefeuille',
+      L.errorAuthFailed: 'Échec de l\'authentification',
+      L.errorLoadBadgesFailed: 'Échec du chargement des badges',
       L.quit: 'QUITTER',
       L.paused: 'PAUSE',
       L.resume: 'REPRENDRE',
@@ -793,6 +879,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: 'LIER PORTEFEUILLE',
       L.connectWallet: 'Connecter portefeuille',
+      L.unlockGlobalRank: 'Débloquer le rang mondial',
       L.bindDescription: 'Connectez votre portefeuille Solana pour débloquer le classement mondial et la synchronisation cloud.',
       L.benefitGlobalRanking: 'Classement mondial',
       L.benefitCloudSync: 'Synchronisation cloud',
@@ -832,6 +919,11 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'Pas de portefeuille? Afficher QR',
       L.downloadWallet: 'Télécharger un portefeuille:',
       L.scanWithWallet: 'Scanner avec le portefeuille',
+      // Exit Confirmation
+      L.exitConfirmTitle: 'Quitter le jeu',
+      L.exitConfirmMessage: 'Voulez-vous vraiment quitter?',
+      L.exitConfirmYes: 'QUITTER',
+      L.exitConfirmNo: 'ANNULER',
     },
 
     // German
@@ -841,6 +933,13 @@ class LocalizationService extends ChangeNotifier {
       L.settings: 'EINSTELLUNGEN',
       L.controls: 'STEUERUNG',
       L.leaderboard: 'RANGLISTE',
+      L.badges: 'ABZEICHEN',
+      L.badgeUnlocked: 'FREIGESCHALTET',
+      L.badgeLocked: 'GESPERRT',
+      L.tapToClose: 'Tippen Sie irgendwo, um zu schließen',
+      L.errorConnectWalletFirst: 'Bitte verbinden Sie zuerst Ihre Wallet',
+      L.errorAuthFailed: 'Authentifizierung fehlgeschlagen',
+      L.errorLoadBadgesFailed: 'Fehler beim Laden der Abzeichen',
       L.quit: 'BEENDEN',
       L.paused: 'PAUSIERT',
       L.resume: 'FORTSETZEN',
@@ -896,6 +995,7 @@ class LocalizationService extends ChangeNotifier {
       // Wallet Binding
       L.bindWallet: 'WALLET VERBINDEN',
       L.connectWallet: 'Wallet verbinden',
+      L.unlockGlobalRank: 'Globalen Rang freischalten',
       L.bindDescription: 'Verbinden Sie Ihr Solana-Wallet um die globale Rangliste und Cloud-Synchronisierung freizuschalten.',
       L.benefitGlobalRanking: 'Globale Rangliste',
       L.benefitCloudSync: 'Cloud-Punktestand',
@@ -935,6 +1035,11 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'Kein Wallet? QR-Code anzeigen',
       L.downloadWallet: 'Wallet herunterladen:',
       L.scanWithWallet: 'Mit Wallet-App scannen',
+      // Exit Confirmation
+      L.exitConfirmTitle: 'Spiel beenden',
+      L.exitConfirmMessage: 'Möchten Sie wirklich beenden?',
+      L.exitConfirmYes: 'BEENDEN',
+      L.exitConfirmNo: 'ABBRECHEN',
     },
   };
 }

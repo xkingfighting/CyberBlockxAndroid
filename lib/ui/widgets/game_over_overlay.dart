@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/global_leaderboard_service.dart';
+import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
 import '../theme/cyber_theme.dart';
 
@@ -105,6 +106,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
     final result = await GlobalLeaderboardService.instance.submitScore(
       score: widget.score,
       lines: widget.lines,
+      level: widget.level,
       source: 'game_daily',
     );
 
@@ -116,6 +118,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
           _isNewRecord = result.isNewRecord;
           _rank = result.rank;
           debugPrint('GameOverOverlay: Upload success, isNewRecord=${result.isNewRecord}, rank=${result.rank}');
+          // Mark local leaderboard entry as synced
+          LeaderboardService.instance.markAsSynced(widget.score);
           widget.onUploadSuccess?.call();
         } else {
           _uploadError = 'Upload failed';

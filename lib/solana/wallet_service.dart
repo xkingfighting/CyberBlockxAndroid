@@ -49,7 +49,6 @@ class WalletService extends ChangeNotifier {
   SolanaWallet? _selectedWallet;
 
   // Deep link connection state
-  String? _pendingSession;
   String? _walletSession;  // Session from wallet connect (Phantom/Solflare)
   Completer<String?>? _deepLinkCompleter;
   PrivateKey? _dappKeyPair;
@@ -598,7 +597,6 @@ class WalletService extends ChangeNotifier {
     await _clearSignState();
     // Clear in-memory state that might interfere with future bindings
     // but keep _publicKey, _useDeepLink, _deepLinkWallet for isConnected check
-    _pendingSession = null;
     _deepLinkCompleter = null;
     _pendingConnectResult = null;
     _pendingSignResult = null;
@@ -662,9 +660,6 @@ class WalletService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Generate a unique session ID
-      _pendingSession = _generateSessionId();
-
       // Generate X25519 keypair for encryption
       _dappKeyPair = PrivateKey.generate();
       final dappPublicKey = _dappKeyPair!.publicKey;
@@ -742,7 +737,6 @@ class WalletService extends ChangeNotifier {
       await _clearDeepLinkState();
       return null;
     } finally {
-      _pendingSession = null;
       _deepLinkCompleter = null;
       _isConnecting = false;
       notifyListeners();
@@ -1016,7 +1010,7 @@ class WalletService extends ChangeNotifier {
       final dataBase58 = uri.queryParameters['data'];
       final nonceBase58 = uri.queryParameters['nonce'];
 
-      debugPrint('Data (base58): ${dataBase58?.substring(0, min(50, dataBase58?.length ?? 0))}...');
+      debugPrint('Data (base58): ${dataBase58 != null ? dataBase58.substring(0, min(50, dataBase58.length)) : "null"}...');
       debugPrint('Nonce (base58): $nonceBase58');
 
       if (dataBase58 != null && nonceBase58 != null && _dappKeyPair != null && _walletEncryptionPublicKey != null) {
@@ -1110,12 +1104,6 @@ class WalletService extends ChangeNotifier {
         _deepLinkCompleter!.complete(null);
       }
     }
-  }
-
-  String _generateSessionId() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   // Base58 decoding helper

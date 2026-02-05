@@ -139,6 +139,38 @@ class LeaderboardService extends ChangeNotifier {
     return score > _entries.last.score;
   }
 
+  /// Mark the most recent entry with matching score as synced
+  Future<void> markAsSynced(int score) async {
+    // Find the most recent entry with this score (by date)
+    int targetIndex = -1;
+    DateTime? latestDate;
+
+    for (int i = 0; i < _entries.length; i++) {
+      final entry = _entries[i];
+      if (entry.score == score && !entry.isSynced) {
+        if (latestDate == null || entry.date.isAfter(latestDate)) {
+          latestDate = entry.date;
+          targetIndex = i;
+        }
+      }
+    }
+
+    if (targetIndex >= 0) {
+      final old = _entries[targetIndex];
+      _entries[targetIndex] = LeaderboardEntry(
+        name: old.name,
+        score: old.score,
+        level: old.level,
+        lines: old.lines,
+        date: old.date,
+        isSynced: true,
+      );
+      await _saveEntries();
+      notifyListeners();
+      debugPrint('LeaderboardService: Marked score $score as synced');
+    }
+  }
+
   Future<void> clearLeaderboard() async {
     _entries = [];
     await _saveEntries();

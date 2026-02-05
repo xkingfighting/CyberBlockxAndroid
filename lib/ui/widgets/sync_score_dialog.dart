@@ -40,7 +40,7 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
       backgroundColor: const Color(0xFF0A0A12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: CyberColors.cyan.withOpacity(0.5)),
+        side: BorderSide(color: CyberColors.cyan.withValues(alpha: 0.5)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -83,9 +83,9 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
             Container(
               constraints: const BoxConstraints(maxHeight: 220),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: CyberColors.cyan.withOpacity(0.2)),
+                border: Border.all(color: CyberColors.cyan.withValues(alpha: 0.2)),
               ),
               child: ListView.builder(
                 shrinkWrap: true,
@@ -110,12 +110,12 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? CyberColors.cyan.withOpacity(0.1)
+                            ? CyberColors.cyan.withValues(alpha: 0.1)
                             : Colors.transparent,
                         border: index > 0
                             ? Border(
                                 top: BorderSide(
-                                  color: Colors.grey.withOpacity(0.1),
+                                  color: Colors.grey.withValues(alpha: 0.1),
                                 ),
                               )
                             : null,
@@ -131,11 +131,11 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
                               border: Border.all(
                                 color: isSelected
                                     ? CyberColors.cyan
-                                    : Colors.grey.withOpacity(0.5),
+                                    : Colors.grey.withValues(alpha: 0.5),
                                 width: 2,
                               ),
                               color: isSelected
-                                  ? CyberColors.cyan.withOpacity(0.2)
+                                  ? CyberColors.cyan.withValues(alpha: 0.2)
                                   : Colors.transparent,
                             ),
                             child: isSelected
@@ -249,7 +249,7 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
                       onPressed: widget.onSkip,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: Colors.grey.withOpacity(0.5)),
+                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.5)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -271,7 +271,7 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         backgroundColor: CyberColors.cyan,
-                        disabledBackgroundColor: Colors.grey.withOpacity(0.3),
+                        disabledBackgroundColor: Colors.grey.withValues(alpha: 0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -325,6 +325,7 @@ class _SyncScoreDialogState extends State<SyncScoreDialog> {
       await GlobalLeaderboardService.instance.submitScore(
         score: entry.score,
         lines: entry.lines,
+        level: entry.level,
         source: 'bind_update',  // First-time binding sync
       );
     }

@@ -225,7 +225,7 @@ class CyberBlockxGame extends FlameGame {
 
     // Outer glow layer 1 (wider, more diffuse)
     final glow1Paint = Paint()
-      ..color = const Color(0xFF00CCFF).withOpacity(0.35 * glowIntensity)
+      ..color = const Color(0xFF00CCFF).withValues(alpha: 0.35 * glowIntensity)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 * glowIntensity);
@@ -236,7 +236,7 @@ class CyberBlockxGame extends FlameGame {
 
     // Outer glow layer 2 (sharper)
     final glow2Paint = Paint()
-      ..color = const Color(0xFF00CCFF).withOpacity(0.5 * glowIntensity)
+      ..color = const Color(0xFF00CCFF).withValues(alpha: 0.5 * glowIntensity)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * glowIntensity);
@@ -324,19 +324,19 @@ class CyberBlockxGame extends FlameGame {
     if (isGhost) {
       // Ghost piece - outline only with subtle glow
       final glowPaint = Paint()
-        ..color = color.withOpacity(0.12 * glowIntensity)
+        ..color = color.withValues(alpha: 0.12 * glowIntensity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * glowIntensity);
       canvas.drawRRect(outerRRect, glowPaint);
 
       final paint = Paint()
-        ..color = color.withOpacity(0.32)
+        ..color = color.withValues(alpha: 0.32)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
       canvas.drawRRect(outerRRect, paint);
     } else {
       // Layer 1: Outer glow (bloom effect) - like iOS outerGlow
       final outerGlowPaint = Paint()
-        ..color = color.withOpacity(0.2 * glowIntensity)
+        ..color = color.withValues(alpha: 0.2 * glowIntensity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * glowIntensity);
       canvas.drawRRect(outerRRect, outerGlowPaint);
 
@@ -353,7 +353,7 @@ class CyberBlockxGame extends FlameGame {
       final gradient = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [color.withOpacity(0.65), darkerColor],
+        colors: [color.withValues(alpha: 0.65), darkerColor],
       );
       final fillPaint = Paint()..shader = gradient.createShader(mainRect);
       canvas.drawRRect(mainRRect, fillPaint);
@@ -368,7 +368,7 @@ class CyberBlockxGame extends FlameGame {
 
       // Layer 3: Inner glow (energy core) - like iOS innerGlow
       final innerGlowPaint = Paint()
-        ..color = color.withOpacity(0.35 * glowIntensity);
+        ..color = color.withValues(alpha: 0.35 * glowIntensity);
       canvas.drawRRect(innerRRect, innerGlowPaint);
 
       // Layer 4: Highlight (reflective surface) - like iOS highlight
@@ -379,7 +379,7 @@ class CyberBlockxGame extends FlameGame {
         2.5,
       );
       final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.28 * glowIntensity)
+        ..color = Colors.white.withValues(alpha: 0.28 * glowIntensity)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5);
       canvas.drawRRect(
         RRect.fromRectAndRadius(highlightRect, const Radius.circular(1)),
@@ -388,7 +388,7 @@ class CyberBlockxGame extends FlameGame {
 
       // Light border for definition
       final borderPaint = Paint()
-        ..color = Colors.white.withOpacity(0.2)
+        ..color = Colors.white.withValues(alpha: 0.2)
         ..strokeWidth = 0.5
         ..style = PaintingStyle.stroke;
       canvas.drawRRect(mainRRect, borderPaint);
@@ -463,7 +463,7 @@ class LockEffect {
 
     // White flash
     final flashPaint = Paint()
-      ..color = Colors.white.withOpacity(alpha)
+      ..color = Colors.white.withValues(alpha: alpha)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * (1 - progress));
 
     final rect = RRect.fromRectAndRadius(
@@ -478,7 +478,7 @@ class LockEffect {
 
     // Color glow
     final glowPaint = Paint()
-      ..color = color.withOpacity(alpha * 0.6)
+      ..color = color.withValues(alpha: alpha * 0.6)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * (1 - progress));
     canvas.drawRRect(rect, glowPaint);
   }
@@ -524,7 +524,7 @@ class LineClearEffect {
 
     // White scan line
     final scanLinePaint = Paint()
-      ..color = Colors.white.withOpacity(flashAlpha.clamp(0.0, 0.9))
+      ..color = Colors.white.withValues(alpha: flashAlpha.clamp(0.0, 0.9))
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * glitchIntensity);
 
     canvas.drawRect(
@@ -539,7 +539,7 @@ class LineClearEffect {
 
     // Cyan glow underneath
     final glowPaint = Paint()
-      ..color = const Color(0xFF00FFFF).withOpacity(flashAlpha * 0.6)
+      ..color = const Color(0xFF00FFFF).withValues(alpha: flashAlpha * 0.6)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10);
 
     canvas.drawRect(
@@ -742,16 +742,6 @@ class CyberpunkBackground {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
 
       canvas.drawPath(path, paint);
-    }
-  }
-
-  void _drawScanLines(Canvas canvas, Vector2 size) {
-    final paint = Paint()
-      ..color = const Color(0x08000000)
-      ..style = PaintingStyle.fill;
-
-    for (double y = 0; y < size.y; y += 3) {
-      canvas.drawRect(Rect.fromLTWH(0, y, size.x, 1), paint);
     }
   }
 }

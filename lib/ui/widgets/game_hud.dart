@@ -110,7 +110,7 @@ class RightHUD extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     Colors.transparent,
-                    CyberColors.cyan.withOpacity(0.5),
+                    CyberColors.cyan.withValues(alpha: 0.5),
                     Colors.transparent,
                   ],
                   begin: Alignment.topCenter,
@@ -190,10 +190,10 @@ class _SideStatCardState extends State<SideStatCard>
       width: 54,
       padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.5),
+        color: Colors.black.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: widget.color.withOpacity(0.4),
+          color: widget.color.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -213,7 +213,7 @@ class _SideStatCardState extends State<SideStatCard>
                     Icon(
                       widget.icon,
                       size: 14,
-                      color: widget.color.withOpacity(0.5),
+                      color: widget.color.withValues(alpha: 0.5),
                     ),
                     // Icon
                     Icon(
@@ -235,7 +235,7 @@ class _SideStatCardState extends State<SideStatCard>
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: widget.color.withOpacity(0.6),
+                    color: widget.color.withValues(alpha: 0.6),
                     blurRadius: 4,
                   ),
                 ],
@@ -262,7 +262,7 @@ class _SideStatCardState extends State<SideStatCard>
                 fontSize: 8,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color: widget.color.withOpacity(0.7),
+                color: widget.color.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -307,10 +307,10 @@ class SidePieceCard extends StatelessWidget {
           width: 52,
           height: 46,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: accentColor.withOpacity(0.5),
+              color: accentColor.withValues(alpha: 0.5),
               width: 1,
             ),
           ),
@@ -335,7 +335,7 @@ class SidePieceCard extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           fontFamily: 'monospace',
-                          color: accentColor.withOpacity(0.3),
+                          color: accentColor.withValues(alpha: 0.3),
                         ),
                       ),
               ),
@@ -387,12 +387,12 @@ class SideNextQueue extends StatelessWidget {
                 width: 52,
                 height: isFirst ? 46 : 38,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(isFirst ? 0.5 : 0.3),
+                  color: Colors.black.withValues(alpha: isFirst ? 0.5 : 0.3),
                   borderRadius: BorderRadius.circular(isFirst ? 8 : 6),
                   border: Border.all(
                     color: isFirst
-                        ? CyberColors.cyan.withOpacity(0.5)
-                        : Colors.grey.withOpacity(0.2),
+                        ? CyberColors.cyan.withValues(alpha: 0.5)
+                        : Colors.grey.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -437,7 +437,7 @@ class _MiniCornerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withOpacity(0.8)
+      ..color = color.withValues(alpha: 0.8)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -509,7 +509,7 @@ class _CyberPiecePreview extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withValues(alpha: 0.3),
             blurRadius: 5,
           ),
         ],
@@ -565,7 +565,7 @@ class _PiecePreviewPainter extends CustomPainter {
 
       // Outer glow
       final glowPaint = Paint()
-        ..color = pieceColor.withOpacity(0.3)
+        ..color = pieceColor.withValues(alpha: 0.3)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
       canvas.drawRRect(
         RRect.fromRectAndRadius(rect, const Radius.circular(2)),
@@ -586,7 +586,7 @@ class _PiecePreviewPainter extends CustomPainter {
 
       // Border
       final borderPaint = Paint()
-        ..color = Colors.white.withOpacity(0.3)
+        ..color = Colors.white.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.5;
       canvas.drawRRect(
@@ -596,7 +596,7 @@ class _PiecePreviewPainter extends CustomPainter {
 
       // Highlight
       final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.4)
+        ..color = Colors.white.withValues(alpha: 0.4)
         ..strokeWidth = 2;
       canvas.drawLine(
         Offset(rect.left + 3, rect.top + 2),

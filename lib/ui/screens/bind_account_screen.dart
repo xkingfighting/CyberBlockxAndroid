@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/auth_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../solana/wallet_service.dart';
@@ -393,12 +392,25 @@ class _BindAccountScreenState extends State<BindAccountScreen>
           else if (_showWalletPicker)
             _buildWalletPicker()
           else
-            CyberButton(
-              text: L.connectWallet.tr,
-              icon: Icons.link,
-              color: CyberColors.purple,
-              expanded: true,
-              onPressed: () => setState(() => _showWalletPicker = true),
+            Column(
+              children: [
+                CyberButton(
+                  text: L.connectWallet.tr,
+                  icon: Icons.link,
+                  color: CyberColors.purple,
+                  expanded: true,
+                  onPressed: () => setState(() => _showWalletPicker = true),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  L.unlockGlobalRank.tr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
             ),
 
           // Error message
@@ -609,66 +621,6 @@ class _BindAccountScreenState extends State<BindAccountScreen>
           useDeepLink: true,  // Use Solflare deep link (same protocol as Phantom)
         ),
 
-        const SizedBox(height: 20),
-
-        // Tips with clear defaults button
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: CyberColors.orange.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: CyberColors.orange.withValues(alpha: 0.3)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.warning_amber, color: CyberColors.orange, size: 16),
-                  const SizedBox(width: 8),
-                  Text(
-                    L.walletTip.tr,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
-                      color: CyberColors.orange,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                L.walletTipContent.tr,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: Colors.grey[400],
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Quick action buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildClearDefaultsButton(
-                      'Solflare',
-                      SolanaWallet.solflare.packageName,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildClearDefaultsButton(
-                      'Phantom',
-                      SolanaWallet.phantom.packageName,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -786,66 +738,6 @@ class _BindAccountScreenState extends State<BindAccountScreen>
     _startBinding(useDeepLink: useDeepLink && wallet.supportsDeepLink);
   }
 
-  Widget _buildClearDefaultsButton(String walletName, String packageName) {
-    return GestureDetector(
-      onTap: () => _openAppSettings(packageName),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.settings, color: Colors.grey[400], size: 14),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                '$walletName ${L.clearDefaults.tr}',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  color: Colors.grey[400],
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openAppSettings(String packageName) async {
-    try {
-      // Open Android app settings for the specific app
-      final uri = Uri.parse('package:$packageName');
-      final settingsUri = Uri.parse(
-        'android.settings.APPLICATION_DETAILS_SETTINGS',
-      );
-
-      // Try to open the app details settings
-      final intent = Uri.parse(
-        'intent://#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;data=package:$packageName;end',
-      );
-
-      if (await canLaunchUrl(intent)) {
-        await launchUrl(intent, mode: LaunchMode.externalApplication);
-      } else {
-        // Fallback: open general app settings
-        final generalSettings = Uri.parse('package:$packageName');
-        await launchUrl(
-          Uri.parse('android.settings.APPLICATION_DETAILS_SETTINGS'),
-          mode: LaunchMode.externalApplication,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error opening app settings: $e');
-    }
-  }
-
   Widget _buildBoundState(AuthService auth) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -889,17 +781,6 @@ class _BindAccountScreenState extends State<BindAccountScreen>
             ],
           ),
         ),
-        const SizedBox(height: 12),
-
-        if (auth.userId != null)
-          Text(
-            'ID: ${auth.userId}',
-            style: TextStyle(
-              fontSize: 12,
-              fontFamily: 'monospace',
-              color: Colors.grey[500],
-            ),
-          ),
         const SizedBox(height: 40),
 
         CyberButton(

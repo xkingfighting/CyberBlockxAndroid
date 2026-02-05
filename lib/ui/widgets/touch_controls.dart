@@ -43,7 +43,7 @@ class TouchControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black.withOpacity(0.92),
+      color: Colors.black.withValues(alpha: 0.92),
       child: Stack(
         children: [
           // Top glow line with enhanced cyberpunk effect (matching iOS exactly)
@@ -59,19 +59,19 @@ class TouchControls extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        _ButtonColors.pink.withOpacity(0.8),  // pink left
-                        _ButtonColors.purple.withOpacity(0.6), // purple center
-                        _ButtonColors.cyan.withOpacity(0.8),   // cyan right
+                        _ButtonColors.pink.withValues(alpha: 0.8),  // pink left
+                        _ButtonColors.purple.withValues(alpha: 0.6), // purple center
+                        _ButtonColors.cyan.withValues(alpha: 0.8),   // cyan right
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _ButtonColors.cyan.withOpacity(0.6),
+                        color: _ButtonColors.cyan.withValues(alpha: 0.6),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),
                       BoxShadow(
-                        color: _ButtonColors.pink.withOpacity(0.4),
+                        color: _ButtonColors.pink.withValues(alpha: 0.4),
                         blurRadius: 8,
                         spreadRadius: 0,
                       ),
@@ -86,9 +86,9 @@ class TouchControls extends StatelessWidget {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.white.withOpacity(0.3),
-                          _ButtonColors.cyan.withOpacity(0.2),
-                          Colors.white.withOpacity(0.3),
+                          Colors.white.withValues(alpha: 0.3),
+                          _ButtonColors.cyan.withValues(alpha: 0.2),
+                          Colors.white.withValues(alpha: 0.3),
                         ],
                       ),
                     ),
@@ -103,9 +103,9 @@ class TouchControls extends StatelessWidget {
             child: ShaderMask(
               shaderCallback: (bounds) => LinearGradient(
                 colors: [
-                  _ButtonColors.cyan.withOpacity(0.06),
-                  _ButtonColors.purple.withOpacity(0.08),
-                  _ButtonColors.pink.withOpacity(0.06),
+                  _ButtonColors.cyan.withValues(alpha: 0.06),
+                  _ButtonColors.purple.withValues(alpha: 0.08),
+                  _ButtonColors.pink.withValues(alpha: 0.06),
                 ],
               ).createShader(bounds),
               child: const Text(
@@ -180,8 +180,8 @@ class TouchControls extends StatelessWidget {
                       ShaderMask(
                         shaderCallback: (bounds) => LinearGradient(
                           colors: [
-                            _ButtonColors.cyan.withOpacity(0.4),
-                            _ButtonColors.purple.withOpacity(0.4),
+                            _ButtonColors.cyan.withValues(alpha: 0.4),
+                            _ButtonColors.purple.withValues(alpha: 0.4),
                           ],
                         ).createShader(bounds),
                         child: const Text(
@@ -284,15 +284,15 @@ class _PauseButton extends StatelessWidget {
         width: 80,
         height: 24,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.6),
+          color: Colors.black.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.grey.withOpacity(0.3),
+            color: Colors.grey.withValues(alpha: 0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -305,7 +305,7 @@ class _PauseButton extends StatelessWidget {
               width: 3,
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.8),
+                color: Colors.grey.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -314,7 +314,7 @@ class _PauseButton extends StatelessWidget {
               width: 3,
               height: 12,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.8),
+                color: Colors.grey.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -408,7 +408,7 @@ class _ThumbButtonState extends State<ThumbButton> {
                     color: widget.color,
                     boxShadow: [
                       BoxShadow(
-                        color: widget.color.withOpacity(0.6),
+                        color: widget.color.withValues(alpha: 0.6),
                         blurRadius: 10,
                       ),
                     ],
@@ -421,7 +421,7 @@ class _ThumbButtonState extends State<ThumbButton> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: widget.color.withOpacity(_isPressed ? 0.8 : 0.4),
+                    color: widget.color.withValues(alpha: _isPressed ? 0.8 : 0.4),
                     width: 2,
                   ),
                 ),

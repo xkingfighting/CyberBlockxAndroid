@@ -97,7 +97,7 @@ class _MenuBackgroundState extends State<MenuBackground>
                   radius: 1.2,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.7),
+                    Colors.black.withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -162,7 +162,7 @@ class _MenuBackgroundPainter extends CustomPainter {
         path.lineTo(x, y);
       }
 
-      wavePaint.color = CyberColors.cyan.withOpacity(0.15 - i * 0.02);
+      wavePaint.color = CyberColors.cyan.withValues(alpha: 0.15 - i * 0.02);
       canvas.drawPath(path, wavePaint);
     }
   }

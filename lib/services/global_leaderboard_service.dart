@@ -137,8 +137,8 @@ class GlobalLeaderboardService extends ChangeNotifier {
   Future<ScoreSubmitResponse?> submitScore({
     required int score,
     required int lines,
+    required int level,
     String source = 'game',
-    String lan = 'en',
   }) async {
     if (!AuthService.instance.isBound) {
       debugPrint('Cannot submit score: not bound');
@@ -156,8 +156,8 @@ class GlobalLeaderboardService extends ChangeNotifier {
         accessToken: token,
         score: score,
         lines: lines,
+        level: level,
         source: source,
-        lan: lan,
       );
 
       if (result.isSuccess && result.data != null) {
@@ -173,7 +173,7 @@ class GlobalLeaderboardService extends ChangeNotifier {
           final refreshed = await AuthService.instance.refreshAccessToken();
           if (refreshed) {
             // Retry once
-            return submitScore(score: score, lines: lines, source: source, lan: lan);
+            return submitScore(score: score, lines: lines, level: level, source: source);
           }
         }
       }

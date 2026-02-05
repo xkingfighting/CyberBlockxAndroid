@@ -23,7 +23,7 @@ class PauseOverlay extends StatelessWidget {
       listenable: LocalizationService.instance,
       builder: (context, _) {
         return Container(
-          color: Colors.black.withOpacity(0.85),
+          color: Colors.black.withValues(alpha: 0.85),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -48,7 +48,7 @@ class PauseOverlay extends StatelessWidget {
                       letterSpacing: 3,
                       shadows: [
                         Shadow(
-                          color: Colors.orange.withOpacity(0.5),
+                          color: Colors.orange.withValues(alpha: 0.5),
                           blurRadius: 15,
                         ),
                       ],
@@ -65,7 +65,7 @@ class PauseOverlay extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        CyberColors.cyan.withOpacity(0.5),
+                        CyberColors.cyan.withValues(alpha: 0.5),
                         Colors.transparent,
                       ],
                     ),
@@ -111,7 +111,7 @@ class PauseOverlay extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontFamily: 'monospace',
-                    color: Colors.grey.withOpacity(0.4),
+                    color: Colors.grey.withValues(alpha: 0.4),
                   ),
                 ),
               ],
@@ -158,17 +158,17 @@ class _PauseButtonState extends State<_PauseButton> {
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
         decoration: BoxDecoration(
           color: _isPressed
-              ? widget.color.withOpacity(0.15)
-              : Colors.black.withOpacity(0.4),
+              ? widget.color.withValues(alpha: 0.15)
+              : Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _isPressed ? widget.color : widget.color.withOpacity(0.7),
+            color: _isPressed ? widget.color : widget.color.withValues(alpha: 0.7),
             width: 1.5,
           ),
           boxShadow: _isPressed
               ? [
                   BoxShadow(
-                    color: widget.color.withOpacity(0.25),
+                    color: widget.color.withValues(alpha: 0.25),
                     blurRadius: 8,
                   ),
                 ]
