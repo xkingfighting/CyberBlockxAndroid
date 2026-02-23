@@ -604,12 +604,22 @@ class _BindAccountScreenState extends State<BindAccountScreen>
         ),
         const SizedBox(height: 20),
 
-        // Wallet options - both use deep link protocol
+        // Wallet options - Seed Vault first on Seeker devices
+        if (WalletService.instance.isSeedVaultAvailable) ...[
+          _buildWalletOption(
+            wallet: SolanaWallet.seedVault,
+            icon: Icons.security,
+            iconColor: const Color(0xFF14F195),  // Solana green
+            recommended: true,
+            useDeepLink: false,  // Seed Vault uses MWA protocol
+          ),
+          const SizedBox(height: 12),
+        ],
         _buildWalletOption(
           wallet: SolanaWallet.phantom,
           icon: Icons.account_balance_wallet,
           iconColor: const Color(0xFFAB9FF2),
-          recommended: true,
+          recommended: !WalletService.instance.isSeedVaultAvailable,
           useDeepLink: true,  // Use Phantom deep link
         ),
         const SizedBox(height: 12),
@@ -701,7 +711,7 @@ class _BindAccountScreenState extends State<BindAccountScreen>
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    recommended ? L.bestMwaSupport.tr : L.deepLinkSupported.tr,
+                    recommended ? L.bestMwaSupport.tr : (useDeepLink ? L.deepLinkSupported.tr : L.mwaSupported.tr),
                     style: TextStyle(
                       fontSize: 11,
                       fontFamily: 'monospace',
@@ -732,6 +742,15 @@ class _BindAccountScreenState extends State<BindAccountScreen>
 
     // Clear any previous errors
     WalletService.instance.clearError();
+
+    // Pre-check: verify wallet app is installed before attempting connection
+    final isInstalled = await WalletService.instance.isWalletInstalled(wallet);
+    if (!isInstalled) {
+      setState(() {
+        _error = L.walletNotInstalled.tr.replaceAll('{wallet}', wallet.name);
+      });
+      return;
+    }
 
     // Start the binding process with selected wallet
     // Use deep link if the wallet supports it and useDeepLink is true

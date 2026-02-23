@@ -10,15 +10,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solana_mobile_client/solana_mobile_client.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const _packageCheckChannel = MethodChannel('com.ichuk.cybertetris/package_check');
+
 /// Supported wallet types
 enum SolanaWallet {
-  phantom('Phantom', 'phantom', 'com.phantom', true),
-  solflare('Solflare', 'solflare', 'com.solflare.mobile', true);
+  phantom('Phantom', 'phantom', 'app.phantom', true),
+  solflare('Solflare', 'solflare', 'com.solflare.mobile', true),
+  seedVault('Seed Vault', 'solana-wallet', 'com.solanamobile.wallet', false);
 
   final String name;
   final String scheme;
   final String packageName;
-  final bool supportsDeepLink; // Both Phantom and Solflare support deep link auth
+  final bool supportsDeepLink; // Phantom and Solflare support deep link; Seed Vault uses MWA only
   const SolanaWallet(this.name, this.scheme, this.packageName, this.supportsDeepLink);
 }
 
@@ -79,6 +82,7 @@ class WalletService extends ChangeNotifier {
   bool _isInitialized = false;
   String? _errorMessage;
   bool? _isMwaAvailable;
+  bool _isSeedVaultAvailable = false;
 
   // Getters
   bool get isConnected => _publicKey != null && (_authToken != null || _useDeepLink);
@@ -87,6 +91,7 @@ class WalletService extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isInitialized => _isInitialized;
   bool? get isMwaAvailable => _isMwaAvailable;
+  bool get isSeedVaultAvailable => _isSeedVaultAvailable;
   SolanaWallet? get connectedWallet => _useDeepLink ? _deepLinkWallet : _selectedWallet;
   String get walletProviderName => connectedWallet?.name ?? 'Unknown';
 
@@ -111,6 +116,21 @@ class WalletService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Failed to check MWA availability: $e');
       _isMwaAvailable = false;
+    }
+
+    // Check if Seed Vault Wallet is installed (Seeker device only)
+    // Note: Cannot use canLaunchUrl(solana-wallet://) because Phantom also registers
+    // the solana-wallet:// scheme. Use PackageManager via MethodChannel for precise detection.
+    try {
+      final result = await _packageCheckChannel.invokeMethod<bool>(
+        'isPackageInstalled',
+        {'packageName': SolanaWallet.seedVault.packageName},
+      );
+      _isSeedVaultAvailable = result ?? false;
+      debugPrint('Seed Vault available: $_isSeedVaultAvailable');
+    } catch (e) {
+      debugPrint('Failed to check Seed Vault availability: $e');
+      _isSeedVaultAvailable = false;
     }
 
     // Restore deep link state if pending (cold start recovery)
@@ -312,6 +332,20 @@ class WalletService extends ChangeNotifier {
     }
   }
 
+  /// Check if a specific wallet app is installed on the device
+  Future<bool> isWalletInstalled(SolanaWallet wallet) async {
+    try {
+      final result = await _packageCheckChannel.invokeMethod<bool>(
+        'isPackageInstalled',
+        {'packageName': wallet.packageName},
+      );
+      return result ?? false;
+    } catch (e) {
+      debugPrint('Error checking wallet installation: $e');
+      return false;
+    }
+  }
+
   /// Connect to a Solana wallet using Mobile Wallet Adapter
   /// [wallet] - Optional specific wallet to use. If null, system will choose.
   /// Returns the wallet address if successful, null otherwise
@@ -325,7 +359,7 @@ class WalletService extends ChangeNotifier {
 
     // Check MWA availability
     if (_isMwaAvailable == false) {
-      _errorMessage = 'No MWA-compatible wallet found. Please install Phantom or Solflare.';
+      _errorMessage = 'No MWA-compatible wallet found. Please install Phantom, Solflare, or use Seed Vault.';
       _isConnecting = false;
       notifyListeners();
       return null;
@@ -335,7 +369,9 @@ class WalletService extends ChangeNotifier {
 
     try {
       // If a specific wallet is selected, try to launch it first
-      if (wallet != null) {
+      // Skip pre-launch for Seed Vault - let MWA startActivityForResult handle it
+      // (pre-launching + MWA intent causes Seed Vault to lose the auth dialog)
+      if (wallet != null && wallet != SolanaWallet.seedVault) {
         debugPrint('Attempting to launch ${wallet.name}...');
         final launched = await _launchWalletApp(wallet);
         if (!launched) {
@@ -376,7 +412,7 @@ class WalletService extends ChangeNotifier {
       // Authorize with the wallet
       final result = await client.authorize(
         identityUri: Uri.parse(_appUri),
-        iconUri: Uri.parse('$_appUri/$_appIcon'),
+        iconUri: Uri.parse(_appIcon),
         identityName: _appName,
         cluster: 'mainnet-beta',
       ).timeout(
@@ -415,7 +451,7 @@ class WalletService extends ChangeNotifier {
           errorStr.contains('canceled')) {
         _errorMessage = 'Connection rejected by user';
       } else if (errorStr.contains('no wallet') || errorStr.contains('not found')) {
-        _errorMessage = 'No MWA wallet found. Please install Phantom or Solflare.';
+        _errorMessage = 'No MWA wallet found. Please install Phantom, Solflare, or use Seed Vault.';
       } else if (errorStr.contains('session') ||
                  errorStr.contains('websocket') ||
                  errorStr.contains('disconnected') ||
@@ -485,7 +521,7 @@ class WalletService extends ChangeNotifier {
       debugPrint('Reauthorizing...');
       final reauth = await client.reauthorize(
         identityUri: Uri.parse(_appUri),
-        iconUri: Uri.parse('$_appUri/$_appIcon'),
+        iconUri: Uri.parse(_appIcon),
         identityName: _appName,
         authToken: _authToken!,
       ).timeout(

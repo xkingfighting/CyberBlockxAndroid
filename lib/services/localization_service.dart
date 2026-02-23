@@ -161,6 +161,7 @@ enum L {
   noWalletShowQr,
   downloadWallet,
   scanWithWallet,
+  walletNotInstalled,
 }
 
 class LocalizationService extends ChangeNotifier {
@@ -346,6 +347,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'No wallet app? Show QR code',
       L.downloadWallet: 'Download a wallet:',
       L.scanWithWallet: 'Scan with wallet app',
+      L.walletNotInstalled: '{wallet} is not installed. Please install it from the app store first.',
     },
 
     // Simplified Chinese
@@ -462,6 +464,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: '没有钱包？显示二维码',
       L.downloadWallet: '下载钱包：',
       L.scanWithWallet: '使用钱包应用扫描',
+      L.walletNotInstalled: '未安装 {wallet}，请先从应用商店安装。',
     },
 
     // Traditional Chinese
@@ -577,6 +580,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: '沒有錢包？顯示二維碼',
       L.downloadWallet: '下載錢包：',
       L.scanWithWallet: '使用錢包應用掃描',
+      L.walletNotInstalled: '未安裝 {wallet}，請先從應用商店安裝。',
     },
 
     // Japanese
@@ -692,6 +696,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'ウォレットがない？QRコードを表示',
       L.downloadWallet: 'ウォレットをダウンロード：',
       L.scanWithWallet: 'ウォレットアプリでスキャン',
+      L.walletNotInstalled: '{wallet}がインストールされていません。アプリストアからインストールしてください。',
     },
 
     // Korean
@@ -803,6 +808,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: '지갑이 없으신가요? QR 코드 표시',
       L.downloadWallet: '지갑 다운로드:',
       L.scanWithWallet: '지갑 앱으로 스캔',
+      L.walletNotInstalled: '{wallet}이(가) 설치되어 있지 않습니다. 앱 스토어에서 먼저 설치해 주세요.',
       // Exit Confirmation
       L.exitConfirmTitle: '게임 종료',
       L.exitConfirmMessage: '정말 종료하시겠습니까?',
@@ -919,6 +925,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'Pas de portefeuille? Afficher QR',
       L.downloadWallet: 'Télécharger un portefeuille:',
       L.scanWithWallet: 'Scanner avec le portefeuille',
+      L.walletNotInstalled: '{wallet} n\'est pas installé. Veuillez l\'installer depuis le store.',
       // Exit Confirmation
       L.exitConfirmTitle: 'Quitter le jeu',
       L.exitConfirmMessage: 'Voulez-vous vraiment quitter?',
@@ -1035,6 +1042,7 @@ class LocalizationService extends ChangeNotifier {
       L.noWalletShowQr: 'Kein Wallet? QR-Code anzeigen',
       L.downloadWallet: 'Wallet herunterladen:',
       L.scanWithWallet: 'Mit Wallet-App scannen',
+      L.walletNotInstalled: '{wallet} ist nicht installiert. Bitte installieren Sie es zuerst aus dem App Store.',
       // Exit Confirmation
       L.exitConfirmTitle: 'Spiel beenden',
       L.exitConfirmMessage: 'Möchten Sie wirklich beenden?',
