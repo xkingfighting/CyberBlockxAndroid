@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/audio_manager.dart';
 import '../../services/localization_service.dart';
 import '../../services/visual_settings.dart';
@@ -170,6 +171,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                           ),
+                          const SizedBox(height: 24),
+
+                          // LEGAL Section
+                          _buildSectionHeader(Icons.gavel, L.legal.tr, CyberColors.cyan),
+                          const SizedBox(height: 8),
+                          _buildSettingsCard(
+                            child: Column(
+                              children: [
+                                _buildLinkRow(
+                                  Icons.privacy_tip,
+                                  L.privacyPolicy.tr,
+                                  CyberColors.cyan,
+                                  'https://cyberblockx.com/privacy',
+                                ),
+                                Divider(
+                                  color: CyberColors.cyan.withValues(alpha: 0.2),
+                                  height: 24,
+                                ),
+                                _buildLinkRow(
+                                  Icons.gavel,
+                                  L.termsAndConditions.tr,
+                                  CyberColors.purple,
+                                  'https://cyberblockx.com/terms',
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 40),
                         ],
                       ),
@@ -288,6 +316,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
           inactiveTrackColor: Colors.grey.withValues(alpha: 0.3),
         ),
       ],
+    );
+  }
+
+  Widget _buildLinkRow(IconData icon, String label, Color color, String url) {
+    return GestureDetector(
+      onTap: () => launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.inAppBrowserView,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontFamily: 'monospace',
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Icon(
+            Icons.chevron_right,
+            color: Colors.grey.withValues(alpha: 0.5),
+            size: 20,
+          ),
+        ],
+      ),
     );
   }
 

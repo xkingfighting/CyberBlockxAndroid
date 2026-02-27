@@ -2,7 +2,7 @@ name: cyber_blockx_flutter
 description: "Cyber Blockx - A Cyberpunk Puzzle Game with Solana Integration"
 publish_to: 'none'
 
-version: 1.0.5+5
+version: 1.0.8+8
 
 environment:
   sdk: ^3.10.8
@@ -30,6 +30,7 @@ dependencies:
   qr_flutter_wc: ^0.0.3
   url_launcher: ^6.2.0
   app_links: ^6.3.3
+  package_info_plus: ^8.0.0
 
   # Icons
   cupertino_icons: ^1.0.8

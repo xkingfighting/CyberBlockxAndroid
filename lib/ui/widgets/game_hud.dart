@@ -607,7 +607,11 @@ class _PiecePreviewPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _PiecePreviewPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.blockSize != blockSize ||
+        oldDelegate.shape != shape;
+  }
 }
 
 // Legacy GameHUD for backwards compatibility

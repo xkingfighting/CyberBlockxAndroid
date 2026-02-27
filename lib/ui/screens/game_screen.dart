@@ -58,6 +58,10 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startNewGame() {
+    // Resume Flame engine if it was paused (game over / pause)
+    if (_game.paused) {
+      _game.resumeEngine();
+    }
     _gameState.startGame();
     _maxCombo = 0;
     _gameStartTime = DateTime.now();
@@ -90,7 +94,22 @@ class _GameScreenState extends State<GameScreen> {
     for (final event in events) {
       _handleGameEvent(event);
     }
+
+    // Pause/resume Flame engine based on game phase to free up GPU/CPU
+    _syncEngineState();
+
     setState(() {});
+  }
+
+  /// Pause Flame rendering when overlays are shown, resume when playing
+  void _syncEngineState() {
+    final shouldPause = _gameState.phase == GamePhase.paused ||
+        _gameState.phase == GamePhase.gameOver;
+    if (shouldPause && !_game.paused) {
+      _game.pauseEngine();
+    } else if (!shouldPause && _game.paused) {
+      _game.resumeEngine();
+    }
   }
 
   void _checkHighScore() {

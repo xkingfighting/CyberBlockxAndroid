@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/menu_background.dart';
 import '../../services/localization_service.dart';
@@ -30,10 +31,16 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
   bool _showPrompt = false;
+  String _version = '';
 
   @override
   void initState() {
     super.initState();
+
+    // Load version
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = info.version);
+    });
 
     // Glow animation for title
     _glowController = AnimationController(
@@ -86,7 +93,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
 
                             // Version text (simple, centered)
                             Text(
-                              'v1.0',
+                              _version.isNotEmpty ? 'v$_version' : '',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontFamily: 'monospace',

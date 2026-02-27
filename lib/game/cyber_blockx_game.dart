@@ -33,6 +33,33 @@ class CyberBlockxGame extends FlameGame {
   double _shakeDuration = 0;
   double _shakeIntensity = 0;
 
+  // Pre-allocated Paint objects to avoid per-frame allocation
+  final Paint _outerGlowPaint = Paint();
+  final Paint _fillPaint = Paint();
+  final Paint _strokePaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5;
+  final Paint _innerGlowPaint = Paint();
+  final Paint _highlightPaint = Paint()..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5);
+  final Paint _borderPaint = Paint()
+    ..color = Colors.white.withValues(alpha: 0.2)
+    ..strokeWidth = 0.5
+    ..style = PaintingStyle.stroke;
+  final Paint _ghostGlowPaint = Paint();
+  final Paint _ghostOutlinePaint = Paint()..strokeWidth = 1.5..style = PaintingStyle.stroke;
+
+  // Pre-allocated paints for grid/board/frame/wave/effects
+  final Paint _gridPaint = Paint()
+    ..color = const Color(0x4D1A334D)
+    ..strokeWidth = 0.8
+    ..style = PaintingStyle.stroke;
+  final Paint _bgPaint = Paint()
+    ..color = const Color(0xE6020308)
+    ..style = PaintingStyle.fill;
+  final Paint _frameGlow1Paint = Paint()..strokeWidth = 2..style = PaintingStyle.stroke;
+  final Paint _frameGlow2Paint = Paint()..strokeWidth = 2..style = PaintingStyle.stroke;
+  final Paint _frameBorderPaint = Paint()..strokeWidth = 1.5..style = PaintingStyle.stroke;
+  // Reusable Random for shake (avoid per-frame allocation)
+  final Random _shakeRandom = Random();
+
   CyberBlockxGame({required this.gameState});
 
   @override
@@ -170,18 +197,12 @@ class CyberBlockxGame extends FlameGame {
   }
 
   void _drawGrid(Canvas canvas) {
-    // Match iOS grid style: SKColor(red: 0.1, green: 0.2, blue: 0.3, alpha: 0.3)
-    final paint = Paint()
-      ..color = const Color(0x4D1A334D) // RGB(26, 51, 77) with 0.3 alpha - matching iOS exactly
-      ..strokeWidth = 0.8
-      ..style = PaintingStyle.stroke;
-
     // Vertical lines
     for (int x = 0; x <= gameState.board.width; x++) {
       canvas.drawLine(
         Offset(boardOrigin.x + x * blockSize, boardOrigin.y),
         Offset(boardOrigin.x + x * blockSize, boardOrigin.y + boardSize.y),
-        paint,
+        _gridPaint,
       );
     }
 
@@ -190,70 +211,41 @@ class CyberBlockxGame extends FlameGame {
       canvas.drawLine(
         Offset(boardOrigin.x, boardOrigin.y + y * blockSize),
         Offset(boardOrigin.x + boardSize.x, boardOrigin.y + y * blockSize),
-        paint,
+        _gridPaint,
       );
     }
   }
 
   void _drawBoardBackground(Canvas canvas) {
-    // Dark semi-transparent background
-    final bgRect = Rect.fromLTWH(
-      boardOrigin.x,
-      boardOrigin.y,
-      boardSize.x,
-      boardSize.y,
-    );
-    final bgPaint = Paint()
-      ..color = const Color(0xE6020308) // 90% opacity dark background
-      ..style = PaintingStyle.fill;
     canvas.drawRRect(
-      RRect.fromRectAndRadius(bgRect, const Radius.circular(5)),
-      bgPaint,
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(boardOrigin.x, boardOrigin.y, boardSize.x, boardSize.y),
+        const Radius.circular(5),
+      ),
+      _bgPaint,
     );
   }
 
   void _drawBoardFrameGlow(Canvas canvas) {
     final glowIntensity = VisualSettings.instance.glowIntensity;
 
-    // Outer frame rect
     final outerRect = Rect.fromLTWH(
-      boardOrigin.x - 3,
-      boardOrigin.y - 3,
-      boardSize.x + 6,
-      boardSize.y + 6,
+      boardOrigin.x - 3, boardOrigin.y - 3, boardSize.x + 6, boardSize.y + 6,
     );
+    final outerRRect = RRect.fromRectAndRadius(outerRect, const Radius.circular(7));
 
-    // Outer glow layer 1 (wider, more diffuse)
-    final glow1Paint = Paint()
+    _frameGlow1Paint
       ..color = const Color(0xFF00CCFF).withValues(alpha: 0.35 * glowIntensity)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 * glowIntensity);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(outerRect, const Radius.circular(7)),
-      glow1Paint,
-    );
+    canvas.drawRRect(outerRRect, _frameGlow1Paint);
 
-    // Outer glow layer 2 (sharper)
-    final glow2Paint = Paint()
+    _frameGlow2Paint
       ..color = const Color(0xFF00CCFF).withValues(alpha: 0.5 * glowIntensity)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * glowIntensity);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(outerRect, const Radius.circular(7)),
-      glow2Paint,
-    );
+    canvas.drawRRect(outerRRect, _frameGlow2Paint);
 
-    // Main border
-    final borderPaint = Paint()
-      ..color = Color.fromRGBO(0, 204, 255, 0.8 * glowIntensity.clamp(0.3, 1.0))
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(outerRect, const Radius.circular(7)),
-      borderPaint,
-    );
+    _frameBorderPaint.color = Color.fromRGBO(0, 204, 255, 0.8 * glowIntensity.clamp(0.3, 1.0));
+    canvas.drawRRect(outerRRect, _frameBorderPaint);
   }
 
   void _drawLockedBlocks(Canvas canvas) {
@@ -262,7 +254,7 @@ class CyberBlockxGame extends FlameGame {
       for (int x = 0; x < board.width; x++) {
         final cell = board.getCell(x, y);
         if (cell.filled && cell.color != null) {
-          _drawBlock(canvas, x, y, cell.color!);
+          _drawBlockLocked(canvas, x, y, cell.color!);
         }
       }
     }
@@ -290,6 +282,74 @@ class CyberBlockxGame extends FlameGame {
     }
   }
 
+  /// Lightweight rendering for locked blocks - NO MaskFilter.blur to avoid GPU memory exhaustion.
+  /// Each blur allocates a Vulkan texture; 150+ blocks × 3 blur = GPU OOM on low-end devices.
+  void _drawBlockLocked(Canvas canvas, int gridX, int gridY, Color color) {
+    final screenX = boardOrigin.x + gridX * blockSize;
+    final screenY = boardOrigin.y + (gameState.board.height - 1 - gridY) * blockSize;
+
+    final mainRect = Rect.fromLTWH(screenX + 2, screenY + 2, blockSize - 4, blockSize - 4);
+    final mainRRect = RRect.fromRectAndRadius(mainRect, const Radius.circular(3));
+
+    // Outer glow - simple color fill, no blur
+    _outerGlowPaint
+      ..color = color.withValues(alpha: 0.15)
+      ..maskFilter = null;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(screenX + 1, screenY + 1, blockSize - 2, blockSize - 2),
+        const Radius.circular(4),
+      ),
+      _outerGlowPaint,
+    );
+
+    // Main block fill with gradient
+    final darkerColor = Color.fromRGBO(
+      (color.r * 255 * 0.55).round(),
+      (color.g * 255 * 0.55).round(),
+      (color.b * 255 * 0.55).round(),
+      1,
+    );
+    _fillPaint.shader = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [color.withValues(alpha: 0.65), darkerColor],
+    ).createShader(mainRect);
+    canvas.drawRRect(mainRRect, _fillPaint);
+
+    // Stroke - solid color, no blur
+    _strokePaint
+      ..color = color.withValues(alpha: 0.7)
+      ..maskFilter = null;
+    canvas.drawRRect(mainRRect, _strokePaint);
+
+    // Inner glow - simple fill
+    _innerGlowPaint.color = color.withValues(alpha: 0.25);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(screenX + 4, screenY + 4, blockSize - 8, blockSize - 8),
+        const Radius.circular(2),
+      ),
+      _innerGlowPaint,
+    );
+
+    // Highlight line
+    _highlightPaint
+      ..color = Colors.white.withValues(alpha: 0.2)
+      ..maskFilter = null;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(screenX + 5, screenY + 3, blockSize - 10, 2.5),
+        const Radius.circular(1),
+      ),
+      _highlightPaint,
+    );
+
+    // Border
+    canvas.drawRRect(mainRRect, _borderPaint);
+  }
+
+  /// Full rendering for active/ghost pieces (max 4-8 blocks, blur is safe)
   void _drawBlock(Canvas canvas, int gridX, int gridY, Color color, {bool isGhost = false}) {
     final glowIntensity = VisualSettings.instance.glowIntensity;
 
@@ -298,100 +358,68 @@ class CyberBlockxGame extends FlameGame {
     final screenX = boardOrigin.x + gridX * blockSize;
     final screenY = boardOrigin.y + (gameState.board.height - 1 - gridY) * blockSize;
 
-    final outerRect = Rect.fromLTWH(
-      screenX + 1,
-      screenY + 1,
-      blockSize - 2,
-      blockSize - 2,
-    );
-    final mainRect = Rect.fromLTWH(
-      screenX + 2,
-      screenY + 2,
-      blockSize - 4,
-      blockSize - 4,
-    );
-    final innerRect = Rect.fromLTWH(
-      screenX + 4,
-      screenY + 4,
-      blockSize - 8,
-      blockSize - 8,
-    );
+    final outerRect = Rect.fromLTWH(screenX + 1, screenY + 1, blockSize - 2, blockSize - 2);
+    final mainRect = Rect.fromLTWH(screenX + 2, screenY + 2, blockSize - 4, blockSize - 4);
 
     final outerRRect = RRect.fromRectAndRadius(outerRect, const Radius.circular(4));
     final mainRRect = RRect.fromRectAndRadius(mainRect, const Radius.circular(3));
-    final innerRRect = RRect.fromRectAndRadius(innerRect, const Radius.circular(2));
 
     if (isGhost) {
       // Ghost piece - outline only with subtle glow
-      final glowPaint = Paint()
+      _ghostGlowPaint
         ..color = color.withValues(alpha: 0.12 * glowIntensity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * glowIntensity);
-      canvas.drawRRect(outerRRect, glowPaint);
+      canvas.drawRRect(outerRRect, _ghostGlowPaint);
 
-      final paint = Paint()
-        ..color = color.withValues(alpha: 0.32)
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke;
-      canvas.drawRRect(outerRRect, paint);
+      _ghostOutlinePaint.color = color.withValues(alpha: 0.32);
+      canvas.drawRRect(outerRRect, _ghostOutlinePaint);
     } else {
-      // Layer 1: Outer glow (bloom effect) - like iOS outerGlow
-      final outerGlowPaint = Paint()
+      // Layer 1: Outer glow (bloom effect) - reuse pre-allocated paint
+      _outerGlowPaint
         ..color = color.withValues(alpha: 0.2 * glowIntensity)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * glowIntensity);
-      canvas.drawRRect(outerRRect, outerGlowPaint);
+      canvas.drawRRect(outerRRect, _outerGlowPaint);
 
-      // Layer 2: Main block with acrylic/glass effect - like iOS block
-      // Darker color for gradient
+      // Layer 2: Main block fill with gradient
       final darkerColor = Color.fromRGBO(
-        (color.red * 0.55).round(),
-        (color.green * 0.55).round(),
-        (color.blue * 0.55).round(),
+        (color.r * 255 * 0.55).round(),
+        (color.g * 255 * 0.55).round(),
+        (color.b * 255 * 0.55).round(),
         1,
       );
-
-      // Main block fill with gradient (acrylic effect)
-      final gradient = LinearGradient(
+      _fillPaint.shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [color.withValues(alpha: 0.65), darkerColor],
-      );
-      final fillPaint = Paint()..shader = gradient.createShader(mainRect);
-      canvas.drawRRect(mainRRect, fillPaint);
+      ).createShader(mainRect);
+      canvas.drawRRect(mainRRect, _fillPaint);
 
       // Block stroke with glow
-      final strokePaint = Paint()
+      _strokePaint
         ..color = color
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 * glowIntensity);
-      canvas.drawRRect(mainRRect, strokePaint);
+      canvas.drawRRect(mainRRect, _strokePaint);
 
-      // Layer 3: Inner glow (energy core) - like iOS innerGlow
-      final innerGlowPaint = Paint()
-        ..color = color.withValues(alpha: 0.35 * glowIntensity);
-      canvas.drawRRect(innerRRect, innerGlowPaint);
-
-      // Layer 4: Highlight (reflective surface) - like iOS highlight
-      final highlightRect = Rect.fromLTWH(
-        screenX + 5,
-        screenY + 3,
-        blockSize - 10,
-        2.5,
+      // Layer 3: Inner glow - use mainRect instead of creating innerRect
+      _innerGlowPaint.color = color.withValues(alpha: 0.35 * glowIntensity);
+      final innerRRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(screenX + 4, screenY + 4, blockSize - 8, blockSize - 8),
+        const Radius.circular(2),
       );
-      final highlightPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.28 * glowIntensity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5);
+      canvas.drawRRect(innerRRect, _innerGlowPaint);
+
+      // Layer 4: Highlight
+      _highlightPaint.color = Colors.white.withValues(alpha: 0.28 * glowIntensity);
       canvas.drawRRect(
-        RRect.fromRectAndRadius(highlightRect, const Radius.circular(1)),
-        highlightPaint,
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(screenX + 5, screenY + 3, blockSize - 10, 2.5),
+          const Radius.circular(1),
+        ),
+        _highlightPaint,
       );
 
-      // Light border for definition
-      final borderPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.2)
-        ..strokeWidth = 0.5
-        ..style = PaintingStyle.stroke;
-      canvas.drawRRect(mainRRect, borderPaint);
+      // Light border
+      canvas.drawRRect(mainRRect, _borderPaint);
     }
   }
 
@@ -408,10 +436,9 @@ class CyberBlockxGame extends FlameGame {
       _shakeTime += dt;
       final progress = _shakeTime / _shakeDuration;
       final intensity = _shakeIntensity * (1 - progress);
-      final random = Random();
       _shakeOffset = Vector2(
-        (random.nextDouble() - 0.5) * 2 * intensity,
-        (random.nextDouble() - 0.5) * 2 * intensity,
+        (_shakeRandom.nextDouble() - 0.5) * 2 * intensity,
+        (_shakeRandom.nextDouble() - 0.5) * 2 * intensity,
       );
     } else {
       _shakeOffset = Vector2.zero();
@@ -443,6 +470,10 @@ class LockEffect {
   double _time = 0;
   static const double duration = 0.18;
 
+  // Pre-allocated paints
+  final Paint _flashPaint = Paint();
+  final Paint _glowPaint = Paint();
+
   LockEffect({
     required this.position,
     required this.color,
@@ -461,11 +492,6 @@ class LockEffect {
     final progress = _time / duration;
     final alpha = (1 - progress) * 0.9;
 
-    // White flash
-    final flashPaint = Paint()
-      ..color = Colors.white.withValues(alpha: alpha)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * (1 - progress));
-
     final rect = RRect.fromRectAndRadius(
       Rect.fromCenter(
         center: Offset(position.x, position.y),
@@ -474,13 +500,16 @@ class LockEffect {
       ),
       const Radius.circular(3),
     );
-    canvas.drawRRect(rect, flashPaint);
 
-    // Color glow
-    final glowPaint = Paint()
+    _flashPaint
+      ..color = Colors.white.withValues(alpha: alpha)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 4 * (1 - progress));
+    canvas.drawRRect(rect, _flashPaint);
+
+    _glowPaint
       ..color = color.withValues(alpha: alpha * 0.6)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8 * (1 - progress));
-    canvas.drawRRect(rect, glowPaint);
+    canvas.drawRRect(rect, _glowPaint);
   }
 }
 
@@ -493,6 +522,10 @@ class LineClearEffect {
   double _time = 0;
   static const double duration = 0.35;
   final Random _random = Random();
+
+  // Pre-allocated paints
+  final Paint _scanPaint = Paint();
+  final Paint _glowPaint = Paint();
 
   LineClearEffect({
     required this.y,
@@ -512,44 +545,28 @@ class LineClearEffect {
 
     final progress = _time / duration;
 
-    // Glitch horizontal offset (small random displacement like iOS)
     final glitchOffset = glitchIntensity > 0.2
         ? (_random.nextDouble() - 0.5) * 10 * glitchIntensity
         : 0.0;
 
-    // Flash brightness: quick fade in, then fade out
     final flashAlpha = progress < 0.1
-        ? progress * 10 // Fast fade in
-        : (1 - progress) * 1.1; // Slower fade out
+        ? progress * 10
+        : (1 - progress) * 1.1;
 
-    // White scan line
-    final scanLinePaint = Paint()
+    _scanPaint
       ..color = Colors.white.withValues(alpha: flashAlpha.clamp(0.0, 0.9))
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * glitchIntensity);
-
     canvas.drawRect(
-      Rect.fromLTWH(
-        boardX + glitchOffset,
-        y - 1.5,
-        boardWidth,
-        3,
-      ),
-      scanLinePaint,
+      Rect.fromLTWH(boardX + glitchOffset, y - 1.5, boardWidth, 3),
+      _scanPaint,
     );
 
-    // Cyan glow underneath
-    final glowPaint = Paint()
+    _glowPaint
       ..color = const Color(0xFF00FFFF).withValues(alpha: flashAlpha * 0.6)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10);
-
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawRect(
-      Rect.fromLTWH(
-        boardX + glitchOffset,
-        y - 3,
-        boardWidth,
-        6,
-      ),
-      glowPaint,
+      Rect.fromLTWH(boardX + glitchOffset, y - 3, boardWidth, 6),
+      _glowPaint,
     );
   }
 }
@@ -563,6 +580,14 @@ class CyberpunkBackground {
   double _time = 0;
   final Random _random = Random();
   bool _initialized = false;
+
+  // Pre-allocated objects for wave/data-rain rendering
+  final Paint _wavePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 0.8
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+  final Path _wavePath = Path();
+  final Paint _dataRainPaint = Paint()..style = PaintingStyle.fill;
 
   CyberpunkBackground({required this.gameRef});
 
@@ -692,32 +717,21 @@ class CyberpunkBackground {
   }
 
   void _drawDataRain(Canvas canvas, Vector2 size) {
-    final textStyle = const TextStyle(
-      fontFamily: 'monospace',
-      fontSize: 10,
-    );
-
     for (final column in _dataRainColumns) {
+      final charCountF = column.chars.length.toDouble();
       for (int i = 0; i < column.chars.length; i++) {
-        final alpha = (1.0 - i / column.chars.length) * column.alpha;
         final y = column.y - i * 12;
-
         if (y < -15 || y > size.y + 15) continue;
 
-        final color = i == 0
+        final alpha = (1.0 - i / charCountF) * column.alpha;
+        _dataRainPaint.color = i == 0
             ? Color.fromRGBO(100, 255, 180, alpha)
             : Color.fromRGBO(0, 180, 100, alpha);
 
-        final textSpan = TextSpan(
-          text: column.chars[i],
-          style: textStyle.copyWith(color: color),
+        canvas.drawRect(
+          Rect.fromLTWH(column.x, y, 5, 8),
+          _dataRainPaint,
         );
-        final textPainter = TextPainter(
-          text: textSpan,
-          textDirection: TextDirection.ltr,
-        );
-        textPainter.layout();
-        textPainter.paint(canvas, Offset(column.x, y));
       }
     }
   }
@@ -726,22 +740,17 @@ class CyberpunkBackground {
     final baseY = size.y * 0.7;
 
     for (final wave in _waves) {
-      final path = Path();
-      path.moveTo(0, baseY + wave.yOffset);
+      _wavePath.reset();
+      _wavePath.moveTo(0, baseY + wave.yOffset);
 
       for (double x = 0; x <= size.x; x += 4) {
         final y = baseY + wave.yOffset +
             wave.amplitude * sin((x / wave.wavelength + wave.phase) * pi * 2);
-        path.lineTo(x, y);
+        _wavePath.lineTo(x, y);
       }
 
-      final paint = Paint()
-        ..color = Color.fromRGBO(0, 130, 220, wave.alpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
-
-      canvas.drawPath(path, paint);
+      _wavePaint.color = Color.fromRGBO(0, 130, 220, wave.alpha);
+      canvas.drawPath(_wavePath, _wavePaint);
     }
   }
 }

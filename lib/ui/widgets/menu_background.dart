@@ -131,7 +131,10 @@ class _DataRainColumn {
 class _MenuBackgroundPainter extends CustomPainter {
   final double time;
   final List<_DataRainColumn> dataRainColumns;
-  final Random _random = Random(42); // Fixed seed for consistent characters
+
+  // Pre-allocated objects to avoid per-frame allocation
+  static final Paint _wavePaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1;
+  static final Path _wavePath = Path();
 
   _MenuBackgroundPainter({
     required this.time,
@@ -145,60 +148,46 @@ class _MenuBackgroundPainter extends CustomPainter {
   }
 
   void _drawHolographicWaves(Canvas canvas, Size size) {
-    final wavePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
     for (int i = 0; i < 5; i++) {
-      final path = Path();
+      _wavePath.reset();
       final amplitude = 15.0 - i * 2;
       final wavelength = 80.0 + i * 15;
       final yBase = size.height * 0.7 + i * 12;
       final phase = time * (0.5 + i * 0.1);
 
-      path.moveTo(0, yBase);
+      _wavePath.moveTo(0, yBase);
       for (double x = 0; x <= size.width; x += 3) {
         final y = yBase + amplitude * sin((x / wavelength + phase) * pi * 2);
-        path.lineTo(x, y);
+        _wavePath.lineTo(x, y);
       }
 
-      wavePaint.color = CyberColors.cyan.withValues(alpha: 0.15 - i * 0.02);
-      canvas.drawPath(path, wavePaint);
+      _wavePaint.color = CyberColors.cyan.withValues(alpha: 0.15 - i * 0.02);
+      canvas.drawPath(_wavePath, _wavePaint);
     }
   }
 
   void _drawDataRain(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      textDirection: TextDirection.ltr,
-    );
+    // Use simple rectangles instead of TextPainter to avoid
+    // per-character allocation and layout() overhead every frame
+    final paint = Paint()..style = PaintingStyle.fill;
 
     for (final column in dataRainColumns) {
-      // Update position based on time
       final currentOffset = (column.offset + time * column.speed) % (size.height + column.length * 15);
+      final lengthF = column.length.toDouble();
 
       for (int i = 0; i < column.length; i++) {
         final y = currentOffset - i * 15;
         if (y < -15 || y > size.height) continue;
 
-        // Fade based on position in column
-        final fade = 1.0 - (i / column.length);
-        final char = _random.nextInt(2).toString(); // 0 or 1
-
-        // Leading character is brighter
-        final color = i == 0
+        final fade = 1.0 - (i / lengthF);
+        paint.color = i == 0
             ? Color.fromRGBO(128, 255, 200, column.opacity * fade)
             : Color.fromRGBO(0, 200, 128, column.opacity * fade * 0.7);
 
-        textPainter.text = TextSpan(
-          text: char,
-          style: TextStyle(
-            fontFamily: 'monospace',
-            fontSize: 12,
-            color: color,
-          ),
+        canvas.drawRect(
+          Rect.fromLTWH(column.x - 2, y, 5, 9),
+          paint,
         );
-        textPainter.layout();
-        textPainter.paint(canvas, Offset(column.x - 4, y));
       }
     }
   }

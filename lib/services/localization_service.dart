@@ -162,6 +162,11 @@ enum L {
   downloadWallet,
   scanWithWallet,
   walletNotInstalled,
+
+  // Legal
+  legal,
+  privacyPolicy,
+  termsAndConditions,
 }
 
 class LocalizationService extends ChangeNotifier {
@@ -348,6 +353,10 @@ class LocalizationService extends ChangeNotifier {
       L.downloadWallet: 'Download a wallet:',
       L.scanWithWallet: 'Scan with wallet app',
       L.walletNotInstalled: '{wallet} is not installed. Please install it from the app store first.',
+      // Legal
+      L.legal: 'LEGAL',
+      L.privacyPolicy: 'Privacy Policy',
+      L.termsAndConditions: 'Terms & Conditions',
     },
 
     // Simplified Chinese
@@ -465,6 +474,10 @@ class LocalizationService extends ChangeNotifier {
       L.downloadWallet: '下载钱包：',
       L.scanWithWallet: '使用钱包应用扫描',
       L.walletNotInstalled: '未安装 {wallet}，请先从应用商店安装。',
+      // Legal
+      L.legal: '法律信息',
+      L.privacyPolicy: '隐私政策',
+      L.termsAndConditions: '服务条款',
     },
 
     // Traditional Chinese
@@ -581,6 +594,10 @@ class LocalizationService extends ChangeNotifier {
       L.downloadWallet: '下載錢包：',
       L.scanWithWallet: '使用錢包應用掃描',
       L.walletNotInstalled: '未安裝 {wallet}，請先從應用商店安裝。',
+      // Legal
+      L.legal: '法律資訊',
+      L.privacyPolicy: '隱私權政策',
+      L.termsAndConditions: '服務條款',
     },
 
     // Japanese
@@ -697,6 +714,10 @@ class LocalizationService extends ChangeNotifier {
       L.downloadWallet: 'ウォレットをダウンロード：',
       L.scanWithWallet: 'ウォレットアプリでスキャン',
       L.walletNotInstalled: '{wallet}がインストールされていません。アプリストアからインストールしてください。',
+      // Legal
+      L.legal: '法的情報',
+      L.privacyPolicy: 'プライバシーポリシー',
+      L.termsAndConditions: '利用規約',
     },
 
     // Korean
@@ -814,6 +835,10 @@ class LocalizationService extends ChangeNotifier {
       L.exitConfirmMessage: '정말 종료하시겠습니까?',
       L.exitConfirmYes: '종료',
       L.exitConfirmNo: '취소',
+      // Legal
+      L.legal: '법적 정보',
+      L.privacyPolicy: '개인정보 처리방침',
+      L.termsAndConditions: '이용약관',
     },
 
     // French
@@ -931,6 +956,10 @@ class LocalizationService extends ChangeNotifier {
       L.exitConfirmMessage: 'Voulez-vous vraiment quitter?',
       L.exitConfirmYes: 'QUITTER',
       L.exitConfirmNo: 'ANNULER',
+      // Legal
+      L.legal: 'MENTIONS LÉGALES',
+      L.privacyPolicy: 'Politique de confidentialité',
+      L.termsAndConditions: 'Conditions générales',
     },
 
     // German
@@ -1048,6 +1077,10 @@ class LocalizationService extends ChangeNotifier {
       L.exitConfirmMessage: 'Möchten Sie wirklich beenden?',
       L.exitConfirmYes: 'BEENDEN',
       L.exitConfirmNo: 'ABBRECHEN',
+      // Legal
+      L.legal: 'RECHTLICHES',
+      L.privacyPolicy: 'Datenschutzrichtlinie',
+      L.termsAndConditions: 'Nutzungsbedingungen',
     },
   };
 }

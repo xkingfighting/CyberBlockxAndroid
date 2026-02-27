@@ -155,7 +155,7 @@ class GameState extends ChangeNotifier {
   GamePhase get phase => _phase;
   Tetromino? get currentPiece => _currentPiece;
   TetrominoType? get holdPiece => _holdPiece?.type;
-  List<TetrominoType> get previewQueue => _previewQueue.take(5).toList();
+  List<TetrominoType> get previewQueue => List.unmodifiable(_previewQueue);
   bool get canHold => _canHold;
   Tetromino? get lastLockedPiece => _lastLockedPiece;
   List<int> get lastClearedRows => _lastClearedRows;
@@ -444,9 +444,13 @@ class GameState extends ChangeNotifier {
   }
 
   void _spawnPiece({TetrominoType? type}) {
-    final pieceType = type ?? _getNextFromBag();
-    if (type == null) {
-      _previewQueue.removeAt(0);
+    final TetrominoType pieceType;
+    if (type != null) {
+      pieceType = type;
+    } else {
+      // Take the first piece from preview queue (what the player sees as "next")
+      pieceType = _previewQueue.removeAt(0);
+      // Add a new piece from bag to the end of the preview queue
       _previewQueue.add(_getNextFromBag());
     }
 
