@@ -22,6 +22,9 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   pinenacl: ^0.6.0
 
+  # Authentication
+  google_sign_in: ^6.2.1
+
   # UI & Utilities
   google_fonts: ^6.2.1
   shared_preferences: ^2.3.3

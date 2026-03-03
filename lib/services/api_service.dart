@@ -521,6 +521,175 @@ class ApiService {
       return ApiResponse.failure('Network error: ${e.toString()}');
     }
   }
+
+  // ========== Auth Provider APIs ==========
+
+  /// Get token using Google ID token
+  /// POST /oauth/token (grant_type=google_idtoken)
+  Future<ApiResponse<TokenResponse>> getTokenByGoogle(String idToken) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/oauth/token'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'grant_type': 'google_idtoken',
+          'client_id': _clientId,
+          'id_token': idToken,
+          'scope': 'wallet:read wallet:write badges:read badges:write',
+        },
+      ).timeout(_timeout);
+
+      debugPrint('API: GetTokenByGoogle response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        debugPrint('API: GetTokenByGoogle body: $json');
+
+        if (json['ret'] == 1 && json['data'] != null) {
+          return ApiResponse.success(TokenResponse.fromJson(json['data']));
+        } else if (json['access_token'] != null) {
+          return ApiResponse.success(TokenResponse.fromJson(json));
+        }
+
+        return ApiResponse.failure(
+          json['msg'] ?? json['message'] ?? 'Google sign-in failed',
+          errorCode: json['error'],
+        );
+      }
+
+      final errorJson = jsonDecode(response.body) as Map<String, dynamic>;
+      return ApiResponse.failure(
+        errorJson['msg'] ?? errorJson['message'] ?? errorJson['error_description'] ?? 'Google sign-in failed',
+        errorCode: errorJson['error'],
+        statusCode: response.statusCode,
+      );
+    } catch (e) {
+      debugPrint('GetTokenByGoogle error: $e');
+      return ApiResponse.failure('Network error: ${e.toString()}');
+    }
+  }
+
+  /// Get linked auth providers for current user
+  /// GET /Api/Auth/Providers
+  Future<ApiResponse<List<AuthProviderInfo>>> getAuthProviders(String accessToken) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/Api/Auth/Providers'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(_timeout);
+
+      debugPrint('API: GetAuthProviders response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        if ((json['ret'] == 1 || json['success'] == true) && json['data'] != null) {
+          final data = json['data'];
+          if (data is List) {
+            final providers = data
+                .map((e) => AuthProviderInfo.fromJson(e as Map<String, dynamic>))
+                .toList();
+            return ApiResponse.success(providers);
+          }
+        }
+        return ApiResponse.failure(json['msg'] ?? 'Failed to get providers');
+      }
+
+      if (response.statusCode == 401) {
+        return ApiResponse.failure('Token expired', errorCode: 'expired_token', statusCode: 401);
+      }
+      return ApiResponse.failure('Server error', statusCode: response.statusCode);
+    } catch (e) {
+      debugPrint('GetAuthProviders error: $e');
+      return ApiResponse.failure('Network error: ${e.toString()}');
+    }
+  }
+
+  /// Link Google account to current user
+  /// POST /Api/Auth/LinkGoogle
+  Future<ApiResponse<void>> linkGoogle({
+    required String accessToken,
+    required String idToken,
+    bool force = false,
+  }) async {
+    try {
+      final body = <String, String>{
+        'id_token': idToken,
+      };
+      if (force) body['force'] = '1';
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/Api/Auth/LinkGoogle'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body,
+      ).timeout(_timeout);
+
+      debugPrint('API: LinkGoogle response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        if (json['ret'] == 1 || json['success'] == true) {
+          return ApiResponse.success(null);
+        }
+        // Check for provider conflict
+        if (json['error'] == 'provider_conflict') {
+          return ApiResponse.failure(
+            json['msg'] ?? 'Account conflict',
+            errorCode: 'provider_conflict',
+            conflictData: json['data'] as Map<String, dynamic>?,
+          );
+        }
+        return ApiResponse.failure(json['msg'] ?? json['message'] ?? 'Link failed');
+      }
+
+      if (response.statusCode == 401) {
+        return ApiResponse.failure('Token expired', errorCode: 'expired_token', statusCode: 401);
+      }
+      return ApiResponse.failure('Server error', statusCode: response.statusCode);
+    } catch (e) {
+      debugPrint('LinkGoogle error: $e');
+      return ApiResponse.failure('Network error: ${e.toString()}');
+    }
+  }
+
+  /// Unlink a provider from current user
+  /// POST /Api/Auth/Unlink
+  Future<ApiResponse<void>> unlinkProvider({
+    required String accessToken,
+    required String provider,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/Api/Auth/Unlink'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: {
+          'provider': provider,
+        },
+      ).timeout(_timeout);
+
+      debugPrint('API: UnlinkProvider response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        if (json['ret'] == 1 || json['success'] == true) {
+          return ApiResponse.success(null);
+        }
+        return ApiResponse.failure(json['msg'] ?? json['message'] ?? 'Unlink failed');
+      }
+
+      if (response.statusCode == 401) {
+        return ApiResponse.failure('Token expired', errorCode: 'expired_token', statusCode: 401);
+      }
+      return ApiResponse.failure('Server error', statusCode: response.statusCode);
+    } catch (e) {
+      debugPrint('UnlinkProvider error: $e');
+      return ApiResponse.failure('Network error: ${e.toString()}');
+    }
+  }
 }
 
 /// Response from Score Submit API

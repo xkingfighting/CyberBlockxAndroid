@@ -1,3 +1,27 @@
+/// Auth provider info (for linked accounts display)
+class AuthProviderInfo {
+  final String provider;   // 'wallet', 'google', 'apple'
+  final String providerId;
+  final String? email;
+  final String? name;
+
+  AuthProviderInfo({
+    required this.provider,
+    required this.providerId,
+    this.email,
+    this.name,
+  });
+
+  factory AuthProviderInfo.fromJson(Map<String, dynamic> json) {
+    return AuthProviderInfo(
+      provider: json['provider'] as String? ?? '',
+      providerId: (json['providerId'] ?? json['provider_id']) as String? ?? '',
+      email: (json['email'] ?? json['provider_email']) as String?,
+      name: (json['name'] ?? json['provider_name']) as String?,
+    );
+  }
+}
+
 /// Token Response from OAuth endpoint
 class TokenResponse {
   final String accessToken;
@@ -6,6 +30,7 @@ class TokenResponse {
   final String tokenType;
   final String? scope;
   final int? userId;
+  final String? displayUserId;
   final String? walletAddress;
   final bool? isNewUser;
 
@@ -16,6 +41,7 @@ class TokenResponse {
     this.tokenType = 'Bearer',
     this.scope,
     this.userId,
+    this.displayUserId,
     this.walletAddress,
     this.isNewUser,
   });
@@ -48,6 +74,7 @@ class TokenResponse {
       tokenType: json['token_type'] as String? ?? 'Bearer',
       scope: json['scope'] as String?,
       userId: userId,
+      displayUserId: json['display_user_id'] as String?,
       walletAddress: json['wallet_address'] as String?,
       isNewUser: json['is_new_user'] as bool?,
     );

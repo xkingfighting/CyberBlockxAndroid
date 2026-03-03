@@ -5,6 +5,7 @@ class ApiResponse<T> {
   final String? errorMessage;
   final String? errorCode;
   final int? statusCode;
+  final Map<String, dynamic>? conflictData;
 
   ApiResponse._({
     required this.isSuccess,
@@ -12,7 +13,10 @@ class ApiResponse<T> {
     this.errorMessage,
     this.errorCode,
     this.statusCode,
+    this.conflictData,
   });
+
+  bool get isConflict => errorCode == 'provider_conflict';
 
   factory ApiResponse.success(T data) {
     return ApiResponse._(isSuccess: true, data: data);
@@ -22,12 +26,14 @@ class ApiResponse<T> {
     String message, {
     String? errorCode,
     int? statusCode,
+    Map<String, dynamic>? conflictData,
   }) {
     return ApiResponse._(
       isSuccess: false,
       errorMessage: message,
       errorCode: errorCode,
       statusCode: statusCode,
+      conflictData: conflictData,
     );
   }
 }

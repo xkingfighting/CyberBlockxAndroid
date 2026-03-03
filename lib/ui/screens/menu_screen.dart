@@ -13,6 +13,7 @@ class MenuScreen extends StatefulWidget {
   final VoidCallback? onControls;
   final VoidCallback? onBind;
   final VoidCallback? onBadges;
+  final VoidCallback? onAccount;
 
   const MenuScreen({
     super.key,
@@ -22,6 +23,7 @@ class MenuScreen extends StatefulWidget {
     this.onControls,
     this.onBind,
     this.onBadges,
+    this.onAccount,
   });
 
   @override
@@ -75,53 +77,54 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
         backgroundColor: Colors.black,
         body: MenuBackground(
           child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  // Main content area - takes all available space
-                  Expanded(
-                    child: Center(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const SizedBox(height: 40),
-
-                            // Title
-                            _buildTitle(),
-                            const SizedBox(height: 20),
-
-                            // Version text (simple, centered)
-                            Text(
-                              _version.isNotEmpty ? 'v$_version' : '',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'monospace',
-                                color: Colors.grey.withValues(alpha: 0.5),
-                              ),
+            child: Stack(
+              children: [
+                // Main content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const SizedBox(height: 40),
+                                _buildTitle(),
+                                const SizedBox(height: 20),
+                                Text(
+                                  _version.isNotEmpty ? 'v$_version' : '',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontFamily: 'monospace',
+                                    color: Colors.grey.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                const SizedBox(height: 200),
+                                AnimatedOpacity(
+                                  opacity: _showPrompt ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 800),
+                                  curve: Curves.easeInOut,
+                                  child: _buildMenuSection(),
+                                ),
+                              ],
                             ),
-
-                            const SizedBox(height: 200),
-
-                            // Menu section - always rendered, opacity animated
-                            AnimatedOpacity(
-                              opacity: _showPrompt ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 800),
-                              curve: Curves.easeInOut,
-                              child: _buildMenuSection(),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      _buildFooter(),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-
-                  // Footer fixed at bottom
-                  _buildFooter(),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                ),
+                // Avatar button - top right
+                Positioned(
+                  top: 8,
+                  right: 16,
+                  child: _buildAvatarButton(),
+                ),
+              ],
             ),
           ),
         ),
@@ -238,12 +241,43 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildMenuSection() {
+  Widget _buildAvatarButton() {
     return ListenableBuilder(
       listenable: AuthService.instance,
       builder: (context, _) {
         final isBound = AuthService.instance.isBound;
+        return GestureDetector(
+          onTap: isBound
+              ? (widget.onAccount ?? () {})
+              : (widget.onBind ?? () {}),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isBound
+                    ? CyberColors.cyan.withValues(alpha: 0.6)
+                    : Colors.grey.withValues(alpha: 0.4),
+                width: 1.5,
+              ),
+              color: Colors.black.withValues(alpha: 0.5),
+            ),
+            child: Icon(
+              isBound ? Icons.person : Icons.person_outline,
+              color: isBound ? CyberColors.cyan : Colors.grey,
+              size: 20,
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildMenuSection() {
+    return ListenableBuilder(
+      listenable: AuthService.instance,
+      builder: (context, _) {
         return Column(
           children: [
             // START GAME text
@@ -290,36 +324,23 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 12),
 
-            // Menu buttons - Row 2: BIND, BADGES (only when bound)
+            // Menu buttons - Row 2: BADGES
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _MenuButton(
-                    title: isBound
-                        ? AuthService.instance.shortWalletAddress
-                        : L.bindWallet.tr,
-                    icon: isBound
-                        ? Icons.check_circle
-                        : Icons.account_balance_wallet,
-                    color: isBound ? CyberColors.green : CyberColors.purple,
-                    onTap: widget.onBind ?? () {},
+                    title: L.badges.tr,
+                    icon: Icons.military_tech,
+                    color: CyberColors.orange,
+                    onTap: widget.onBadges ?? () {},
                   ),
-                  if (isBound) ...[
-                    const SizedBox(width: 10),
-                    _MenuButton(
-                      title: L.badges.tr,
-                      icon: Icons.military_tech,
-                      color: CyberColors.orange,
-                      onTap: widget.onBadges ?? () {},
-                    ),
-                  ],
                 ],
               ),
             ),
 
-            // Legal consent notice — low-profile, below all buttons
+            // Legal consent notice
             const SizedBox(height: 20),
             const LegalConsentInline(),
           ],

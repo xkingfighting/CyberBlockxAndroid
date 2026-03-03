@@ -174,6 +174,25 @@ enum L {
   legalConsentPart2,       // " and "
   legalConsentPrivacyLabel,// "Privacy Policy"
   legalConsentPart3,       // "."
+
+  // Unified Login
+  signInWithGoogle,
+  orConnectWallet,
+  skipForNow,
+  account,
+  linkedAccounts,
+  linkAccount,
+  unlinkAccount,
+  logout,
+  loading,
+  login,
+  loginRequired,
+  loginToUnlock,
+
+  // Link Conflict
+  linkConflictTitle,
+  linkConflictMessage,
+  linkConflictConfirm,
 }
 
 class LocalizationService extends ChangeNotifier {
@@ -370,6 +389,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: ' and ',
       L.legalConsentPrivacyLabel: 'Privacy Policy',
       L.legalConsentPart3: '.',
+      // Unified Login
+      L.signInWithGoogle: 'Sign in with Google',
+      L.orConnectWallet: 'or connect wallet',
+      L.skipForNow: 'Skip for now',
+      L.account: 'ACCOUNT',
+      L.linkedAccounts: 'Linked Accounts',
+      L.linkAccount: 'Link',
+      L.unlinkAccount: 'Unlink',
+      L.logout: 'Log Out',
+      L.loading: 'Loading...',
+      L.login: 'Login',
+      L.loginRequired: 'Login required',
+      L.loginToUnlock: 'Log in to unlock cloud features',
+      L.linkConflictTitle: 'Account Conflict',
+      L.linkConflictMessage: '{account} is already linked to another account. Transfer it to your current account? The previous account will lose this login method.',
+      L.linkConflictConfirm: 'Transfer',
     },
 
     // Simplified Chinese
@@ -497,6 +532,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: '》《',
       L.legalConsentPrivacyLabel: '隐私政策',
       L.legalConsentPart3: '》',
+      // Unified Login
+      L.signInWithGoogle: '通过 Google 登录',
+      L.orConnectWallet: '或连接钱包',
+      L.skipForNow: '暂时跳过',
+      L.account: '账户',
+      L.linkedAccounts: '已绑定账号',
+      L.linkAccount: '绑定',
+      L.unlinkAccount: '解绑',
+      L.logout: '退出登录',
+      L.loading: '加载中...',
+      L.login: '登录',
+      L.loginRequired: '需要登录',
+      L.loginToUnlock: '登录以解锁云端功能',
+      L.linkConflictTitle: '账号冲突',
+      L.linkConflictMessage: '{account} 已绑定到其他账号。是否将其转移到当前账户？原账户将失去此登录方式。',
+      L.linkConflictConfirm: '确认转移',
     },
 
     // Traditional Chinese
@@ -623,6 +674,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: '》《',
       L.legalConsentPrivacyLabel: '隱私權政策',
       L.legalConsentPart3: '》',
+      // Unified Login
+      L.signInWithGoogle: '透過 Google 登入',
+      L.orConnectWallet: '或連接錢包',
+      L.skipForNow: '暫時跳過',
+      L.account: '帳戶',
+      L.linkedAccounts: '已綁定帳號',
+      L.linkAccount: '綁定',
+      L.unlinkAccount: '解綁',
+      L.logout: '登出',
+      L.loading: '載入中...',
+      L.login: '登入',
+      L.loginRequired: '需要登入',
+      L.loginToUnlock: '登入以解鎖雲端功能',
+      L.linkConflictTitle: '帳號衝突',
+      L.linkConflictMessage: '{account} 已綁定到其他帳號。是否將其轉移到當前帳戶？原帳戶將失去此登入方式。',
+      L.linkConflictConfirm: '確認轉移',
     },
 
     // Japanese
@@ -749,6 +816,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: 'と',
       L.legalConsentPrivacyLabel: 'プライバシーポリシー',
       L.legalConsentPart3: 'に同意したことになります。',
+      // Unified Login
+      L.signInWithGoogle: 'Googleでサインイン',
+      L.orConnectWallet: 'またはウォレットを接続',
+      L.skipForNow: '後で',
+      L.account: 'アカウント',
+      L.linkedAccounts: '連携済みアカウント',
+      L.linkAccount: '連携',
+      L.unlinkAccount: '解除',
+      L.logout: 'ログアウト',
+      L.loading: '読み込み中...',
+      L.login: 'ログイン',
+      L.loginRequired: 'ログインが必要です',
+      L.loginToUnlock: 'ログインしてクラウド機能を有効にする',
+      L.linkConflictTitle: 'アカウント競合',
+      L.linkConflictMessage: '{account} は既に別のアカウントに紐付けられています。現在のアカウントに移行しますか？元のアカウントはこのログイン方法を失います。',
+      L.linkConflictConfirm: '移行する',
     },
 
     // Korean
@@ -876,6 +959,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: ' 및 ',
       L.legalConsentPrivacyLabel: '개인정보 처리방침',
       L.legalConsentPart3: '에 동의합니다.',
+      // Unified Login
+      L.signInWithGoogle: 'Google로 로그인',
+      L.orConnectWallet: '또는 지갑 연결',
+      L.skipForNow: '나중에',
+      L.account: '계정',
+      L.linkedAccounts: '연결된 계정',
+      L.linkAccount: '연결',
+      L.unlinkAccount: '해제',
+      L.logout: '로그아웃',
+      L.loading: '로딩 중...',
+      L.login: '로그인',
+      L.loginRequired: '로그인 필요',
+      L.loginToUnlock: '로그인하여 클라우드 기능 잠금 해제',
+      L.linkConflictTitle: '계정 충돌',
+      L.linkConflictMessage: '{account}이(가) 이미 다른 계정에 연결되어 있습니다. 현재 계정으로 이전하시겠습니까? 이전 계정은 이 로그인 방법을 잃게 됩니다.',
+      L.linkConflictConfirm: '이전',
     },
 
     // French
@@ -1003,6 +1102,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: ' et la ',
       L.legalConsentPrivacyLabel: 'Politique de confidentialité',
       L.legalConsentPart3: '.',
+      // Unified Login
+      L.signInWithGoogle: 'Se connecter avec Google',
+      L.orConnectWallet: 'ou connecter portefeuille',
+      L.skipForNow: 'Passer',
+      L.account: 'COMPTE',
+      L.linkedAccounts: 'Comptes liés',
+      L.linkAccount: 'Lier',
+      L.unlinkAccount: 'Délier',
+      L.logout: 'Déconnexion',
+      L.loading: 'Chargement...',
+      L.login: 'Connexion',
+      L.loginRequired: 'Connexion requise',
+      L.loginToUnlock: 'Connectez-vous pour débloquer les fonctionnalités cloud',
+      L.linkConflictTitle: 'Conflit de compte',
+      L.linkConflictMessage: '{account} est déjà lié à un autre compte. Le transférer vers votre compte actuel ? L\'ancien compte perdra cette méthode de connexion.',
+      L.linkConflictConfirm: 'Transférer',
     },
 
     // German
@@ -1130,6 +1245,22 @@ class LocalizationService extends ChangeNotifier {
       L.legalConsentPart2: ' und der ',
       L.legalConsentPrivacyLabel: 'Datenschutzrichtlinie',
       L.legalConsentPart3: ' zu.',
+      // Unified Login
+      L.signInWithGoogle: 'Mit Google anmelden',
+      L.orConnectWallet: 'oder Wallet verbinden',
+      L.skipForNow: 'Überspringen',
+      L.account: 'KONTO',
+      L.linkedAccounts: 'Verknüpfte Konten',
+      L.linkAccount: 'Verknüpfen',
+      L.unlinkAccount: 'Trennen',
+      L.logout: 'Abmelden',
+      L.loading: 'Laden...',
+      L.login: 'Anmelden',
+      L.loginRequired: 'Anmeldung erforderlich',
+      L.loginToUnlock: 'Anmelden, um Cloud-Funktionen freizuschalten',
+      L.linkConflictTitle: 'Kontokonflikt',
+      L.linkConflictMessage: '{account} ist bereits mit einem anderen Konto verknüpft. Auf Ihr aktuelles Konto übertragen? Das vorherige Konto verliert diese Anmeldemethode.',
+      L.linkConflictConfirm: 'Übertragen',
     },
   };
 }

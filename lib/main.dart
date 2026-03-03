@@ -10,6 +10,7 @@ import 'ui/screens/leaderboard_screen.dart';
 import 'ui/screens/controls_screen.dart';
 import 'ui/screens/bind_account_screen.dart';
 import 'ui/screens/badges_screen.dart';
+import 'ui/screens/account_screen.dart';
 import 'services/audio_manager.dart';
 import 'services/leaderboard_service.dart';
 import 'services/localization_service.dart';
@@ -142,6 +143,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
   bool _showControls = false;
   bool _showBind = false;
   bool _showBadges = false;
+  bool _showAccount = false;
 
   @override
   void initState() {
@@ -170,13 +172,14 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
     if (didPop) return true;
 
     // If on a sub-screen, go back to menu
-    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges) {
+    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges || _showAccount) {
       setState(() {
         _showSettings = false;
         _showLeaderboard = false;
         _showControls = false;
         _showBind = false;
         _showBadges = false;
+        _showAccount = false;
       });
       return false;
     }
@@ -204,6 +207,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         _showControls = false;
         _showBind = true;
         _showBadges = false;
+        _showAccount = false;
       });
     }
   }
@@ -278,6 +282,11 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
       content = BadgesScreen(
         onClose: () => setState(() => _showBadges = false),
       );
+    } else if (_showAccount) {
+      content = AccountScreen(
+        onClose: () => setState(() => _showAccount = false),
+        onLogout: () => setState(() => _showAccount = false),
+      );
     } else {
       content = MenuScreen(
         onStartGame: () => setState(() => _isPlaying = true),
@@ -286,6 +295,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         onControls: () => setState(() => _showControls = true),
         onBind: () => setState(() => _showBind = true),
         onBadges: () => setState(() => _showBadges = true),
+        onAccount: () => setState(() => _showAccount = true),
       );
     }
 

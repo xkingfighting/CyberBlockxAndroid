@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/auth_state.dart';
 import 'api_service.dart';
 
 /// Authentication status
@@ -9,6 +10,23 @@ enum AuthStatus {
   bound,     // Bound to wallet (cloud player)
   binding,   // Binding in progress
   error,     // Error state
+}
+
+/// Authentication provider type
+enum AuthProvider {
+  wallet,
+  google,
+  apple;
+
+  String get rawValue => name;
+
+  static AuthProvider? fromString(String? value) {
+    if (value == null) return null;
+    return AuthProvider.values.cast<AuthProvider?>().firstWhere(
+      (p) => p!.rawValue == value,
+      orElse: () => null,
+    );
+  }
 }
 
 /// Auth Service - manages wallet binding state and OAuth tokens
@@ -33,6 +51,10 @@ class AuthService extends ChangeNotifier {
   static const String _keyPendingNonce = 'cyberblockx_pending_nonce';
   static const String _keyPendingMessage = 'cyberblockx_pending_message';
   static const String _keyPendingWalletAddress = 'cyberblockx_pending_wallet_address';
+  static const String _keyDisplayUserId = 'cyberblockx_display_user_id';
+  // Keys for auth provider info
+  static const String _keyAuthProvider = 'cyberblockx_auth_provider';
+  static const String _keyDisplayName = 'cyberblockx_display_name';
 
   // State
   AuthStatus _status = AuthStatus.unknown;
@@ -41,8 +63,12 @@ class AuthService extends ChangeNotifier {
   DateTime? _tokenExpiry;
   String? _walletAddress;
   int? _userId;
+  String? _displayUserId;
   String? _errorMessage;
   bool _isNewUser = false;
+  AuthProvider? _authProvider;
+  String? _displayName;
+  List<AuthProviderInfo> _linkedProviders = [];
 
   // Pending nonce data for binding
   String? _pendingNonce;
@@ -56,7 +82,11 @@ class AuthService extends ChangeNotifier {
   String? get accessToken => _accessToken;
   String? get errorMessage => _errorMessage;
   int? get userId => _userId;
+  String? get displayUserId => _displayUserId;
   bool get isNewUser => _isNewUser;
+  AuthProvider? get authProvider => _authProvider;
+  String? get displayName => _displayName;
+  List<AuthProviderInfo> get linkedProviders => _linkedProviders;
 
   String get shortWalletAddress {
     if (_walletAddress == null || _walletAddress!.length < 10) {
@@ -81,9 +111,15 @@ class AuthService extends ChangeNotifier {
       if (userIdStr != null) {
         _userId = int.tryParse(userIdStr);
       }
+      _displayUserId = await _storage.read(key: _keyDisplayUserId);
+
+      final providerStr = await _storage.read(key: _keyAuthProvider);
+      _authProvider = AuthProvider.fromString(providerStr);
+      _displayName = await _storage.read(key: _keyDisplayName);
 
       // Determine status based on stored data
-      if (_accessToken != null && _walletAddress != null) {
+      // Bound if we have an access token AND either a wallet address or an auth provider
+      if (_accessToken != null && (_walletAddress != null || _authProvider != null)) {
         _status = AuthStatus.bound;
       } else {
         _status = AuthStatus.unbound;
@@ -151,6 +187,7 @@ class AuthService extends ChangeNotifier {
       _refreshToken = tokenData.refreshToken;
       _tokenExpiry = DateTime.now().add(Duration(seconds: tokenData.expiresIn));
       _userId = tokenData.userId;
+      _displayUserId = tokenData.displayUserId;
       _isNewUser = tokenData.isNewUser ?? false;
 
       // Save to secure storage
@@ -184,7 +221,52 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Unbind wallet
+  /// Sign in with Google ID token
+  Future<bool> signInWithGoogle(String idToken) async {
+    _status = AuthStatus.binding;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await ApiService.instance.getTokenByGoogle(idToken);
+
+    if (result.isSuccess && result.data != null) {
+      final tokenData = result.data!;
+      _accessToken = tokenData.accessToken;
+      _refreshToken = tokenData.refreshToken;
+      _tokenExpiry = DateTime.now().add(Duration(seconds: tokenData.expiresIn));
+      _userId = tokenData.userId;
+      _displayUserId = tokenData.displayUserId;
+      _isNewUser = tokenData.isNewUser ?? false;
+      _authProvider = AuthProvider.google;
+      _walletAddress = tokenData.walletAddress;
+
+      await _saveTokens();
+
+      _status = AuthStatus.bound;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    }
+
+    _errorMessage = result.errorMessage ?? 'Google sign-in failed';
+    _status = AuthStatus.error;
+    notifyListeners();
+    return false;
+  }
+
+  /// Fetch linked providers for current user
+  Future<void> fetchLinkedProviders() async {
+    final token = await getValidAccessToken();
+    if (token == null) return;
+
+    final result = await ApiService.instance.getAuthProviders(token);
+    if (result.isSuccess && result.data != null) {
+      _linkedProviders = result.data!;
+      notifyListeners();
+    }
+  }
+
+  /// Unbind / logout
   Future<void> unbind() async {
     await _clearTokens();
     await _clearPendingBindingState();
@@ -195,6 +277,9 @@ class AuthService extends ChangeNotifier {
     _userId = null;
     _pendingNonce = null;
     _pendingMessage = null;
+    _authProvider = null;
+    _displayName = null;
+    _linkedProviders = [];
     _status = AuthStatus.unbound;
     _errorMessage = null;
     notifyListeners();
@@ -278,6 +363,15 @@ class AuthService extends ChangeNotifier {
       if (_userId != null) {
         await _storage.write(key: _keyUserId, value: _userId.toString());
       }
+      if (_displayUserId != null) {
+        await _storage.write(key: _keyDisplayUserId, value: _displayUserId!);
+      }
+      if (_authProvider != null) {
+        await _storage.write(key: _keyAuthProvider, value: _authProvider!.rawValue);
+      }
+      if (_displayName != null) {
+        await _storage.write(key: _keyDisplayName, value: _displayName);
+      }
     } catch (e) {
       debugPrint('Save tokens error: $e');
     }
@@ -290,6 +384,9 @@ class AuthService extends ChangeNotifier {
       await _storage.delete(key: _keyTokenExpiry);
       await _storage.delete(key: _keyWalletAddress);
       await _storage.delete(key: _keyUserId);
+      await _storage.delete(key: _keyDisplayUserId);
+      await _storage.delete(key: _keyAuthProvider);
+      await _storage.delete(key: _keyDisplayName);
     } catch (e) {
       debugPrint('Clear tokens error: $e');
     }
