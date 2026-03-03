@@ -39,10 +39,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       }
     });
 
-    // Fetch global leaderboard if bound
-    if (AuthService.instance.isBound) {
-      GlobalLeaderboardService.instance.fetchLeaderboard();
-    }
+    // Fetch global leaderboard (public endpoint, no auth required)
+    GlobalLeaderboardService.instance.fetchLeaderboard();
   }
 
   @override
@@ -186,10 +184,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  AuthService.instance.isBound ? Icons.public : Icons.lock,
-                  size: 16,
-                ),
+                const Icon(Icons.public, size: 16),
                 const SizedBox(width: 6),
                 Text(L.globalTab.tr),
               ],
@@ -236,12 +231,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _buildGlobalTab() {
-    final isBound = AuthService.instance.isBound;
-
-    if (!isBound) {
-      return _buildLockedState();
-    }
-
     return Column(
       children: [
         // Table header
@@ -319,7 +308,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           Expanded(
             flex: 2,
             child: Text(
-              isGlobal ? 'WALLET' : L.playerName.tr.toUpperCase(),
+              L.playerName.tr.toUpperCase(),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -395,55 +384,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               fontSize: 14,
               fontFamily: 'monospace',
               color: Colors.white.withValues(alpha: 0.3),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLockedState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.lock_outline,
-            size: 64,
-            color: CyberColors.purple.withValues(alpha: 0.5),
-          ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              L.globalLocked.tr,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontFamily: 'monospace',
-                color: Colors.grey[400],
-                height: 1.4,
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: widget.onBind,
-            icon: const Icon(Icons.account_balance_wallet, size: 18),
-            label: Text(
-              L.bindNow.tr,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: CyberColors.purple,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
             ),
           ),
         ],
@@ -786,7 +726,10 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
     final rank = widget.entry.rank;
     final (rankColor, rankIcon) = _getRankStyle(rank);
     final isCurrentUser =
-        widget.entry.walletAddress == AuthService.instance.walletAddress;
+        (widget.entry.userId != null &&
+         widget.entry.userId == AuthService.instance.userId?.toString()) ||
+        (widget.entry.walletAddress.isNotEmpty &&
+         widget.entry.walletAddress == AuthService.instance.walletAddress);
 
     return AnimatedBuilder(
       animation: _controller,
@@ -803,7 +746,7 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
   }
 
   Widget _buildRow(int rank, Color rankColor, IconData? rankIcon, bool isCurrentUser) {
-    final shortAddress = _shortAddress(widget.entry.walletAddress);
+    final displayName = widget.entry.name;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
@@ -850,7 +793,7 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
                 ],
                 Flexible(
                   child: Text(
-                    shortAddress,
+                    displayName,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: rank <= 3 || isCurrentUser ? FontWeight.bold : FontWeight.normal,
@@ -917,11 +860,6 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
       default:
         return (Colors.white.withValues(alpha: 0.7), null);
     }
-  }
-
-  String _shortAddress(String address) {
-    if (address.length < 10) return address;
-    return '${address.substring(0, 4)}...${address.substring(address.length - 4)}';
   }
 
   String _formatScore(int score) {

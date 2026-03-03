@@ -150,10 +150,10 @@ class ApiService {
     }
   }
 
-  /// Get global leaderboard
+  /// Get global leaderboard (public endpoint, no auth required)
   /// GET /Api/Leaderboard/Global
   Future<ApiResponse<List<GlobalLeaderboardEntry>>> getGlobalLeaderboard({
-    required String accessToken,
+    String? accessToken,
     int limit = 100,
     int offset = 0,
   }) async {
@@ -165,12 +165,16 @@ class ApiService {
         'lan': _lan,
       });
 
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+      };
+      if (accessToken != null) {
+        headers['Authorization'] = 'Bearer $accessToken';
+      }
+
       final response = await http.get(
         uri,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       ).timeout(_timeout);
 
       debugPrint('API: GetLeaderboard response: ${response.statusCode}');

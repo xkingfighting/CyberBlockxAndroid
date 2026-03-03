@@ -24,15 +24,8 @@ class GlobalLeaderboardService extends ChangeNotifier {
   bool get hasData => _entries.isNotEmpty;
   bool get hasError => _errorMessage != null;
 
-  /// Fetch global leaderboard from server
+  /// Fetch global leaderboard from server (public endpoint, no auth required)
   Future<void> fetchLeaderboard({bool forceRefresh = false}) async {
-    // Check if bound
-    if (!AuthService.instance.isBound) {
-      _errorMessage = 'Please bind your wallet first';
-      notifyListeners();
-      return;
-    }
-
     // Check cache
     if (!forceRefresh && _lastFetch != null && _entries.isNotEmpty) {
       final elapsed = DateTime.now().difference(_lastFetch!);
@@ -46,13 +39,9 @@ class GlobalLeaderboardService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Pass token if available (for potential user-specific data like rank),
+      // but the endpoint works without auth too
       final token = await AuthService.instance.getValidAccessToken();
-      if (token == null) {
-        _errorMessage = 'Unable to authenticate';
-        _isLoading = false;
-        notifyListeners();
-        return;
-      }
 
       final result = await ApiService.instance.getGlobalLeaderboard(
         accessToken: token,
@@ -64,16 +53,6 @@ class GlobalLeaderboardService extends ChangeNotifier {
         _errorMessage = null;
       } else {
         _errorMessage = result.errorMessage ?? 'Failed to load leaderboard';
-
-        // Handle token expiry
-        if (result.errorCode == 'expired_token') {
-          final refreshed = await AuthService.instance.refreshAccessToken();
-          if (refreshed) {
-            // Retry once
-            _isLoading = false;
-            return fetchLeaderboard(forceRefresh: true);
-          }
-        }
       }
     } catch (e) {
       debugPrint('FetchLeaderboard error: $e');
