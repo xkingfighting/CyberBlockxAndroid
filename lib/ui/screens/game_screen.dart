@@ -150,6 +150,7 @@ class _GameScreenState extends State<GameScreen> {
         lines: _gameState.scoring.totalLines,
         level: _gameState.scoring.level,
         source: 'game_daily',
+        integrity: _gameState.getIntegrityData(),
       );
       if (result != null) {
         debugPrint('GameScreen: Score uploaded successfully, isNewRecord=${result.isNewRecord}, rank=${result.rank}');
@@ -344,6 +345,7 @@ class _GameScreenState extends State<GameScreen> {
                   maxCombo: _maxCombo,
                   playTime: _playTime,
                   alreadySynced: _scoreSynced,
+                  integrity: _gameState.getIntegrityData(),
                   onRestart: () {
                     _startNewGame();
                     _audio.onGameStart();

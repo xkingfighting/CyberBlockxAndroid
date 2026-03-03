@@ -139,6 +139,7 @@ class GlobalLeaderboardService extends ChangeNotifier {
     required int lines,
     required int level,
     String source = 'game',
+    Map<String, dynamic>? integrity,
   }) async {
     if (!AuthService.instance.isBound) {
       debugPrint('Cannot submit score: not bound');
@@ -158,6 +159,7 @@ class GlobalLeaderboardService extends ChangeNotifier {
         lines: lines,
         level: level,
         source: source,
+        integrity: integrity,
       );
 
       if (result.isSuccess && result.data != null) {

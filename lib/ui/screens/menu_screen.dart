@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/menu_background.dart';
+import '../widgets/legal_consent_inline.dart';
 import '../../services/localization_service.dart';
 import '../../services/auth_service.dart';
 
@@ -317,6 +318,10 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                 ],
               ),
             ),
+
+            // Legal consent notice — low-profile, below all buttons
+            const SizedBox(height: 20),
+            const LegalConsentInline(),
           ],
         );
       },

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../services/audio_manager.dart';
 import '../../services/localization_service.dart';
 import '../../services/visual_settings.dart';
 import '../theme/cyber_theme.dart';
+import 'legal_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback onClose;
@@ -183,7 +183,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Icons.privacy_tip,
                                   L.privacyPolicy.tr,
                                   CyberColors.cyan,
-                                  'https://cyberblockx.com/privacy',
+                                  () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalPage(
+                                        title: PrivacyContent.pageTitle,
+                                        lastUpdated: PrivacyContent.lastUpdated,
+                                        sections: PrivacyContent.sections,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                                 Divider(
                                   color: CyberColors.cyan.withValues(alpha: 0.2),
@@ -193,7 +201,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   Icons.gavel,
                                   L.termsAndConditions.tr,
                                   CyberColors.purple,
-                                  'https://cyberblockx.com/terms',
+                                  () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const LegalPage(
+                                        title: TermsContent.pageTitle,
+                                        lastUpdated: TermsContent.lastUpdated,
+                                        sections: TermsContent.sections,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -319,12 +335,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildLinkRow(IconData icon, String label, Color color, String url) {
+  Widget _buildLinkRow(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
-      onTap: () => launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.inAppBrowserView,
-      ),
+      onTap: onTap,
       child: Row(
         children: [
           Icon(icon, color: color, size: 20),

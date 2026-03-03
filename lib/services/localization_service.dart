@@ -167,6 +167,13 @@ enum L {
   legal,
   privacyPolicy,
   termsAndConditions,
+
+  // Home screen consent notice (split into 5 parts to allow per-language link wrapping)
+  legalConsentPart1,       // "By continuing, you agree to the "
+  legalConsentTermsLabel,  // "Terms & Conditions"
+  legalConsentPart2,       // " and "
+  legalConsentPrivacyLabel,// "Privacy Policy"
+  legalConsentPart3,       // "."
 }
 
 class LocalizationService extends ChangeNotifier {
@@ -357,6 +364,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: 'LEGAL',
       L.privacyPolicy: 'Privacy Policy',
       L.termsAndConditions: 'Terms & Conditions',
+      // Home consent notice
+      L.legalConsentPart1: 'By continuing, you agree to the ',
+      L.legalConsentTermsLabel: 'Terms & Conditions',
+      L.legalConsentPart2: ' and ',
+      L.legalConsentPrivacyLabel: 'Privacy Policy',
+      L.legalConsentPart3: '.',
     },
 
     // Simplified Chinese
@@ -478,6 +491,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: '法律信息',
       L.privacyPolicy: '隐私政策',
       L.termsAndConditions: '服务条款',
+      // Home consent notice
+      L.legalConsentPart1: '继续使用即表示同意《',
+      L.legalConsentTermsLabel: '服务条款',
+      L.legalConsentPart2: '》《',
+      L.legalConsentPrivacyLabel: '隐私政策',
+      L.legalConsentPart3: '》',
     },
 
     // Traditional Chinese
@@ -598,6 +617,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: '法律資訊',
       L.privacyPolicy: '隱私權政策',
       L.termsAndConditions: '服務條款',
+      // Home consent notice
+      L.legalConsentPart1: '繼續使用即表示同意《',
+      L.legalConsentTermsLabel: '服務條款',
+      L.legalConsentPart2: '》《',
+      L.legalConsentPrivacyLabel: '隱私權政策',
+      L.legalConsentPart3: '》',
     },
 
     // Japanese
@@ -718,6 +743,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: '法的情報',
       L.privacyPolicy: 'プライバシーポリシー',
       L.termsAndConditions: '利用規約',
+      // Home consent notice
+      L.legalConsentPart1: '続行することで',
+      L.legalConsentTermsLabel: '利用規約',
+      L.legalConsentPart2: 'と',
+      L.legalConsentPrivacyLabel: 'プライバシーポリシー',
+      L.legalConsentPart3: 'に同意したことになります。',
     },
 
     // Korean
@@ -839,6 +870,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: '법적 정보',
       L.privacyPolicy: '개인정보 처리방침',
       L.termsAndConditions: '이용약관',
+      // Home consent notice
+      L.legalConsentPart1: '계속 진행하면 ',
+      L.legalConsentTermsLabel: '이용약관',
+      L.legalConsentPart2: ' 및 ',
+      L.legalConsentPrivacyLabel: '개인정보 처리방침',
+      L.legalConsentPart3: '에 동의합니다.',
     },
 
     // French
@@ -960,6 +997,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: 'MENTIONS LÉGALES',
       L.privacyPolicy: 'Politique de confidentialité',
       L.termsAndConditions: 'Conditions générales',
+      // Home consent notice
+      L.legalConsentPart1: 'En continuant, vous acceptez les ',
+      L.legalConsentTermsLabel: 'Conditions générales',
+      L.legalConsentPart2: ' et la ',
+      L.legalConsentPrivacyLabel: 'Politique de confidentialité',
+      L.legalConsentPart3: '.',
     },
 
     // German
@@ -1081,6 +1124,12 @@ class LocalizationService extends ChangeNotifier {
       L.legal: 'RECHTLICHES',
       L.privacyPolicy: 'Datenschutzrichtlinie',
       L.termsAndConditions: 'Nutzungsbedingungen',
+      // Home consent notice
+      L.legalConsentPart1: 'Mit der Nutzung stimmen Sie den ',
+      L.legalConsentTermsLabel: 'Nutzungsbedingungen',
+      L.legalConsentPart2: ' und der ',
+      L.legalConsentPrivacyLabel: 'Datenschutzrichtlinie',
+      L.legalConsentPart3: ' zu.',
     },
   };
 }

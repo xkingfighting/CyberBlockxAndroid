@@ -262,6 +262,7 @@ class ApiService {
     required int lines,
     required int level,
     String source = 'game',
+    Map<String, dynamic>? integrity,
   }) async {
     try {
       final requestBody = {
@@ -271,6 +272,13 @@ class ApiService {
         'source': source,
         'lan': _lan,
       };
+      // Attach integrity data for server-side verification
+      if (integrity != null) {
+        requestBody['game_token'] = integrity['game_token']?.toString() ?? '';
+        requestBody['pieces_placed'] = integrity['pieces_placed']?.toString() ?? '0';
+        requestBody['duration'] = integrity['duration']?.toString() ?? '0';
+        requestBody['start_ts'] = integrity['start_ts']?.toString() ?? '0';
+      }
       debugPrint('API: SubmitScore request: $requestBody');
 
       final response = await http.post(

@@ -57,9 +57,14 @@
 -keepattributes Signature
 -keepattributes *Annotation*
 
+# Kotlin
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.**
+-dontwarn kotlin.Unit
+-dontwarn kotlinx.coroutines.**
+
 # Prevent stripping of needed classes
 -dontwarn javax.annotation.**
--dontwarn kotlin.Unit
 
 # Play Core (deferred components)
 -dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication

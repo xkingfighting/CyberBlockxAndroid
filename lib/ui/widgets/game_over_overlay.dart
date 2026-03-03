@@ -17,6 +17,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback? onLeaderboard;
   final VoidCallback? onUploadSuccess;
   final bool alreadySynced; // Whether the score was already synced from HighScoreOverlay
+  final Map<String, dynamic>? integrity; // Anti-cheat integrity data from GameState
 
   const GameOverOverlay({
     super.key,
@@ -30,6 +31,7 @@ class GameOverOverlay extends StatefulWidget {
     this.onLeaderboard,
     this.onUploadSuccess,
     this.alreadySynced = false,
+    this.integrity,
   });
 
   @override
@@ -108,6 +110,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       lines: widget.lines,
       level: widget.level,
       source: 'game_daily',
+      integrity: widget.integrity,
     );
 
     if (mounted) {

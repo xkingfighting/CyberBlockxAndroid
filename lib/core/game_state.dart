@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'tetromino.dart';
@@ -142,6 +143,12 @@ class GameState extends ChangeNotifier {
   static const double lockDelay = 0.5;
   static const int maxLockMoves = 15;
 
+  // Anti-cheat tracking
+  int _piecesPlaced = 0;
+  int _gameStartTimestamp = 0;
+  String _gameToken = '';
+  double _totalGameTime = 0; // accumulated play time (excludes pause)
+
   // Events queue
   final List<GameEvent> _eventQueue = [];
 
@@ -159,6 +166,20 @@ class GameState extends ChangeNotifier {
   bool get canHold => _canHold;
   Tetromino? get lastLockedPiece => _lastLockedPiece;
   List<int> get lastClearedRows => _lastClearedRows;
+  int get piecesPlaced => _piecesPlaced;
+  String get gameToken => _gameToken;
+  int get gameDurationSeconds => _totalGameTime.toInt();
+
+  /// Generate integrity data for score verification.
+  /// Server uses this to detect obviously fabricated scores.
+  Map<String, dynamic> getIntegrityData() {
+    return {
+      'game_token': _gameToken,
+      'pieces_placed': _piecesPlaced,
+      'duration': gameDurationSeconds,
+      'start_ts': _gameStartTimestamp,
+    };
+  }
 
   /// Start a new game
   void startGame() {
@@ -169,6 +190,12 @@ class GameState extends ChangeNotifier {
     _bag.clear();
     _previewQueue.clear();
     _eventQueue.clear();
+
+    // Reset anti-cheat tracking
+    _piecesPlaced = 0;
+    _totalGameTime = 0;
+    _gameStartTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    _gameToken = _generateGameToken();
 
     // Fill preview queue
     _refillBag();
@@ -186,6 +213,9 @@ class GameState extends ChangeNotifier {
   /// Update game state (called every frame)
   void update(double deltaTime) {
     if (_phase != GamePhase.playing || _currentPiece == null) return;
+
+    // Accumulate play time (only while playing, not paused)
+    _totalGameTime += deltaTime;
 
     // Handle lock delay
     if (_isLocking) {
@@ -401,6 +431,7 @@ class GameState extends ChangeNotifier {
     _lastLockedPiece = _currentPiece!.copy();
 
     board.lockPiece(_currentPiece!);
+    _piecesPlaced++;
     _eventQueue.add(GameEvent.pieceLocked);
 
     // Store cleared rows before clearing them (for animation)
@@ -481,5 +512,10 @@ class GameState extends ChangeNotifier {
   void _refillBag() {
     _bag = List.from(TetrominoType.values);
     _bag.shuffle(_random);
+  }
+
+  String _generateGameToken() {
+    final bytes = List<int>.generate(16, (_) => _random.nextInt(256));
+    return base64Url.encode(bytes);
   }
 }

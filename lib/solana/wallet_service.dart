@@ -4,11 +4,11 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:pinenacl/api.dart';
 import 'package:pinenacl/x25519.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:solana_mobile_client/solana_mobile_client.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'crypto_helper.dart';
+import 'deep_link_handler.dart';
 
 const _packageCheckChannel = MethodChannel('com.ichuk.cybertetris/package_check');
 
@@ -30,16 +30,6 @@ class WalletService extends ChangeNotifier {
   static final WalletService instance = WalletService._();
   WalletService._();
 
-  // SharedPreferences keys for persisting deep link state (cold start recovery)
-  static const _keyDappPrivateKey = 'wallet_dapp_private_key';
-  static const _keyDeepLinkWallet = 'wallet_deep_link_wallet';
-  static const _keyPendingConnect = 'wallet_pending_connect';
-  // Keys for sign message cold start recovery
-  static const _keyWalletSession = 'wallet_session';
-  static const _keyWalletEncryptionKey = 'wallet_encryption_key';
-  static const _keyPendingSign = 'wallet_pending_sign';
-  static const _keyPublicKey = 'wallet_public_key';
-
   // App identity for MWA
   static const String _appName = 'CyberBlockx';
   static const String _appUri = 'https://cyberblockx.com';
@@ -58,22 +48,12 @@ class WalletService extends ChangeNotifier {
   Uint8List? _walletEncryptionPublicKey;  // Wallet's X25519 public key for encryption
   bool _useDeepLink = false;  // Whether connected via deep link
   SolanaWallet? _deepLinkWallet;  // Which wallet is connected via deep link
-  static const _appScheme = 'cyberblockx';
 
   // Pending connection result (for cold start recovery)
   String? _pendingConnectResult;
 
   // Pending sign result (for cold start recovery)
   String? _pendingSignResult;
-
-  // Phantom deep link URLs - use phantom:// scheme for Android, https:// for iOS
-  // Android prefers the custom scheme for direct app-to-app communication
-  static const _phantomConnectUrl = 'phantom://v1/connect';
-  static const _phantomSignMessageUrl = 'phantom://v1/signMessage';
-
-  // Solflare deep link URLs - use https:// universal links
-  static const _solflareConnectUrl = 'https://solflare.com/ul/v1/connect';
-  static const _solflareSignMessageUrl = 'https://solflare.com/ul/v1/signMessage';
 
   String? _publicKey;
   Uint8List? _publicKeyBytes;
@@ -162,173 +142,27 @@ class WalletService extends ChangeNotifier {
     return result;
   }
 
-  /// Save deep link state to SharedPreferences (for cold start recovery)
-  Future<void> _saveDeepLinkState(SolanaWallet wallet) async {
-    try {
-      if (_dappKeyPair != null) {
-        final prefs = await SharedPreferences.getInstance();
-
-        // PrivateKey extends ByteList, so toList() returns the raw key bytes (32 bytes)
-        final keyBytes = Uint8List.fromList(_dappKeyPair!.toList());
-        final keyBase58 = _toBase58(keyBytes);
-        debugPrint('Saving deep link state: key length=${keyBytes.length}, wallet=${wallet.name}');
-
-        // Save synchronously-ish by committing immediately
-        await prefs.setString(_keyDappPrivateKey, keyBase58);
-        await prefs.setString(_keyDeepLinkWallet, wallet.name);
-        await prefs.setBool(_keyPendingConnect, true);
-
-        // Verify the save
-        final verifyPending = prefs.getBool(_keyPendingConnect);
-        final verifyKey = prefs.getString(_keyDappPrivateKey);
-        debugPrint('Deep link state saved and verified: pending=$verifyPending, keySaved=${verifyKey != null}');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Failed to save deep link state: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
-  }
-
-  /// Restore deep link state from SharedPreferences
+  /// Restore deep link state from persistent storage
   Future<void> _restoreDeepLinkState() async {
-    try {
-      debugPrint('Attempting to restore deep link state...');
-      final prefs = await SharedPreferences.getInstance();
-
-      final isPending = prefs.getBool(_keyPendingConnect);
-      debugPrint('isPending from storage: $isPending');
-
-      if (isPending != true) {
-        debugPrint('No pending deep link state to restore');
-        return;
-      }
-
-      final keyBase58 = prefs.getString(_keyDappPrivateKey);
-      final walletName = prefs.getString(_keyDeepLinkWallet);
-
-      debugPrint('keyBase58: ${keyBase58 != null ? "${keyBase58.substring(0, 10)}..." : "null"}');
-      debugPrint('walletName: $walletName');
-
-      if (keyBase58 != null && walletName != null) {
-        final keyBytes = _fromBase58(keyBase58);
-        debugPrint('Key bytes length: ${keyBytes.length}');
-
-        // Reconstruct PrivateKey from bytes (PrivateKey constructor accepts Uint8List)
-        _dappKeyPair = PrivateKey(Uint8List.fromList(keyBytes));
-        _deepLinkWallet = SolanaWallet.values.firstWhere(
-          (w) => w.name == walletName,
-          orElse: () => SolanaWallet.phantom,
-        );
-
-        // Verify the restored public key
-        final restoredPublicKey = _toBase58(Uint8List.fromList(_dappKeyPair!.publicKey.toList()));
-        debugPrint('Deep link state restored successfully: wallet=$walletName, publicKey=$restoredPublicKey');
-      } else {
-        debugPrint('Missing data for restore: key=${keyBase58 != null}, wallet=${walletName != null}');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Failed to restore deep link state: $e');
-      debugPrint('Stack trace: $stackTrace');
+    final state = await DeepLinkHandler.restoreConnectState();
+    if (state != null) {
+      _dappKeyPair = state.dappKeyPair;
+      _deepLinkWallet = state.wallet;
     }
   }
 
-  /// Clear saved deep link state
-  Future<void> _clearDeepLinkState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyDappPrivateKey);
-      await prefs.remove(_keyDeepLinkWallet);
-      await prefs.remove(_keyPendingConnect);
-      debugPrint('Deep link state cleared');
-    } catch (e) {
-      debugPrint('Failed to clear deep link state: $e');
-    }
-  }
-
-  /// Save sign state to SharedPreferences (for cold start recovery)
-  Future<void> _saveSignState() async {
-    try {
-      if (_dappKeyPair != null && _walletSession != null && _walletEncryptionPublicKey != null) {
-        final prefs = await SharedPreferences.getInstance();
-
-        final keyBytes = Uint8List.fromList(_dappKeyPair!.toList());
-        final keyBase58 = _toBase58(keyBytes);
-        final encKeyBase58 = _toBase58(_walletEncryptionPublicKey!);
-
-        await prefs.setString(_keyDappPrivateKey, keyBase58);
-        await prefs.setString(_keyWalletSession, _walletSession!);
-        await prefs.setString(_keyWalletEncryptionKey, encKeyBase58);
-        await prefs.setString(_keyDeepLinkWallet, _deepLinkWallet?.name ?? 'Unknown');
-        await prefs.setBool(_keyPendingSign, true);
-        // Also save the public key for proper state restoration
-        if (_publicKey != null) {
-          await prefs.setString(_keyPublicKey, _publicKey!);
-        }
-
-        debugPrint('Sign state saved for cold start recovery');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Failed to save sign state: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
-  }
-
-  /// Restore sign state from SharedPreferences
+  /// Restore sign state from persistent storage
   Future<void> _restoreSignState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-
-      final isPending = prefs.getBool(_keyPendingSign);
-      debugPrint('isPending sign from storage: $isPending');
-
-      if (isPending != true) {
-        return;
+    final state = await DeepLinkHandler.restoreSignState();
+    if (state != null) {
+      _dappKeyPair = state.dappKeyPair;
+      _walletSession = state.walletSession;
+      _walletEncryptionPublicKey = state.walletEncryptionPublicKey;
+      _deepLinkWallet = state.wallet;
+      _useDeepLink = true;
+      if (state.publicKey != null) {
+        _publicKey = state.publicKey;
       }
-
-      final keyBase58 = prefs.getString(_keyDappPrivateKey);
-      final sessionStr = prefs.getString(_keyWalletSession);
-      final encKeyBase58 = prefs.getString(_keyWalletEncryptionKey);
-      final walletName = prefs.getString(_keyDeepLinkWallet);
-      final publicKeyStr = prefs.getString(_keyPublicKey);
-
-      if (keyBase58 != null && sessionStr != null && encKeyBase58 != null && walletName != null) {
-        final keyBytes = _fromBase58(keyBase58);
-        final encKeyBytes = _fromBase58(encKeyBase58);
-
-        _dappKeyPair = PrivateKey(Uint8List.fromList(keyBytes));
-        _walletSession = sessionStr;
-        _walletEncryptionPublicKey = Uint8List.fromList(encKeyBytes);
-        _deepLinkWallet = SolanaWallet.values.firstWhere(
-          (w) => w.name == walletName,
-          orElse: () => SolanaWallet.phantom,
-        );
-        _useDeepLink = true;
-        // Also restore the public key
-        if (publicKeyStr != null) {
-          _publicKey = publicKeyStr;
-        }
-
-        debugPrint('Sign state restored successfully: wallet=$walletName, publicKey=$publicKeyStr');
-      }
-    } catch (e, stackTrace) {
-      debugPrint('Failed to restore sign state: $e');
-      debugPrint('Stack trace: $stackTrace');
-    }
-  }
-
-  /// Clear saved sign state
-  Future<void> _clearSignState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyWalletSession);
-      await prefs.remove(_keyWalletEncryptionKey);
-      await prefs.remove(_keyPendingSign);
-      await prefs.remove(_keyPublicKey);
-      // Also clear the deep link wallet to avoid state confusion
-      await prefs.remove(_keyDeepLinkWallet);
-      debugPrint('Sign state cleared');
-    } catch (e) {
-      debugPrint('Failed to clear sign state: $e');
     }
   }
 
@@ -428,7 +262,7 @@ class WalletService extends ChangeNotifier {
         _publicKeyBytes = result.publicKey;
 
         // Convert to base58 for display
-        _publicKey = _toBase58(result.publicKey);
+        _publicKey = CryptoHelper.toBase58(result.publicKey);
         debugPrint('Wallet connected: $_publicKey');
       } else {
         debugPrint('Authorization returned null - wallet may have disconnected');
@@ -560,7 +394,7 @@ class WalletService extends ChangeNotifier {
         if (signedMessage.signatures.isNotEmpty) {
           final signature = signedMessage.signatures.first;
           debugPrint('Message signed successfully');
-          return _toBase58(signature);
+          return CryptoHelper.toBase58(signature);
         }
       }
 
@@ -630,8 +464,8 @@ class WalletService extends ChangeNotifier {
   /// Clear temporary deep link state after binding completes
   /// This ensures clean state for future binding attempts
   Future<void> clearTemporaryState() async {
-    await _clearDeepLinkState();
-    await _clearSignState();
+    await DeepLinkHandler.clearConnectState();
+    await DeepLinkHandler.clearSignState();
     // Clear in-memory state that might interfere with future bindings
     // but keep _publicKey, _useDeepLink, _deepLinkWallet for isConnected check
     _deepLinkCompleter = null;
@@ -698,34 +532,16 @@ class WalletService extends ChangeNotifier {
 
     try {
       // Generate X25519 keypair for encryption
-      _dappKeyPair = PrivateKey.generate();
-      final dappPublicKey = _dappKeyPair!.publicKey;
-      final dappPublicKeyBase58 = _toBase58(Uint8List.fromList(dappPublicKey.toList()));
+      _dappKeyPair = CryptoHelper.generateKeyPair();
+      final dappPublicKeyBase58 = CryptoHelper.publicKeyBase58(_dappKeyPair!);
 
       debugPrint('Generated dApp public key: $dappPublicKeyBase58');
 
       // Save state for cold start recovery BEFORE launching wallet
-      await _saveDeepLinkState(wallet);
-
-      // Get the connect URL based on wallet
-      final connectBaseUrl = wallet == SolanaWallet.phantom
-          ? _phantomConnectUrl
-          : _solflareConnectUrl;
+      await DeepLinkHandler.saveConnectState(_dappKeyPair!, wallet);
 
       // Build the connect URL
-      final redirectUri = '$_appScheme://onConnect';
-      final params = {
-        'app_url': _appUri,
-        'dapp_encryption_public_key': dappPublicKeyBase58,
-        'cluster': 'mainnet-beta',
-        'redirect_link': redirectUri,
-      };
-
-      final queryString = params.entries
-          .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-
-      final connectUri = Uri.parse('$connectBaseUrl?$queryString');
+      final connectUri = DeepLinkHandler.buildConnectUrl(wallet, dappPublicKeyBase58);
       debugPrint('Opening ${wallet.name} with deep link: $connectUri');
 
       // Create a completer to wait for the callback BEFORE launching
@@ -743,7 +559,7 @@ class WalletService extends ChangeNotifier {
         _isConnecting = false;
         _deepLinkWallet = null;
         _deepLinkCompleter = null;
-        await _clearDeepLinkState();
+        await DeepLinkHandler.clearConnectState();
         notifyListeners();
         return null;
       }
@@ -766,14 +582,14 @@ class WalletService extends ChangeNotifier {
       }
 
       // Clear saved state after successful handling
-      await _clearDeepLinkState();
+      await DeepLinkHandler.clearConnectState();
 
       return _publicKey;
     } catch (e) {
       debugPrint('${wallet.name} deep link error: $e');
       _errorMessage = 'Connection failed: ${e.toString()}';
       _deepLinkWallet = null;
-      await _clearDeepLinkState();
+      await DeepLinkHandler.clearConnectState();
       return null;
     } finally {
       _deepLinkCompleter = null;
@@ -786,7 +602,7 @@ class WalletService extends ChangeNotifier {
   void handleDeepLink(Uri uri) {
     debugPrint('Received deep link: $uri');
 
-    if (uri.scheme.toLowerCase() != _appScheme) return;
+    if (uri.scheme.toLowerCase() != DeepLinkHandler.appScheme) return;
 
     final host = uri.host.toLowerCase();
     if (host == 'onconnect' || uri.path.toLowerCase() == '/onconnect') {
@@ -816,7 +632,7 @@ class WalletService extends ChangeNotifier {
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
-      _clearSignState();
+      DeepLinkHandler.clearSignState();
       notifyListeners();
       return;
     }
@@ -828,31 +644,24 @@ class WalletService extends ChangeNotifier {
 
       if (dataBase58 != null && nonceBase58 != null && _dappKeyPair != null && _walletEncryptionPublicKey != null) {
         // Decrypt the data
-        final encryptedData = _fromBase58(dataBase58);
-        final nonce = _fromBase58(nonceBase58);
+        final encryptedData = CryptoHelper.fromBase58(dataBase58);
+        final nonce = CryptoHelper.fromBase58(nonceBase58);
 
         debugPrint('Decrypting $walletName sign response...');
 
-        // Create shared secret and decrypt
-        final box = Box(
-          myPrivateKey: _dappKeyPair!,
-          theirPublicKey: PublicKey(_walletEncryptionPublicKey!),
+        final json = CryptoHelper.decryptPayload(
+          _dappKeyPair!,
+          _walletEncryptionPublicKey!,
+          encryptedData,
+          nonce,
         );
-
-        final decrypted = box.decrypt(
-          ByteList(encryptedData),
-          nonce: Uint8List.fromList(nonce),
-        );
-
-        final jsonStr = utf8.decode(decrypted);
-        final json = jsonDecode(jsonStr) as Map<String, dynamic>;
         debugPrint('Decrypted sign response: $json');
 
         // Extract the signature
         final signatureBase58 = json['signature'] as String?;
         if (signatureBase58 != null) {
           // Clear the saved sign state
-          _clearSignState();
+          DeepLinkHandler.clearSignState();
 
           if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
             // Normal flow - complete the completer
@@ -876,7 +685,7 @@ class WalletService extends ChangeNotifier {
 
       debugPrint('Could not extract signature from $walletName response');
       _errorMessage = 'Failed to get signature';
-      _clearSignState();
+      DeepLinkHandler.clearSignState();
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
@@ -884,7 +693,7 @@ class WalletService extends ChangeNotifier {
       debugPrint('Error processing sign callback: $e');
       debugPrint('Stack trace: $stackTrace');
       _errorMessage = 'Failed to process signature: ${e.toString()}';
-      _clearSignState();
+      DeepLinkHandler.clearSignState();
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
@@ -910,7 +719,7 @@ class WalletService extends ChangeNotifier {
 
       // Create the payload - message must be base58 encoded
       final messageBytes = Uint8List.fromList(utf8.encode(message));
-      final messageBase58 = _toBase58(messageBytes);
+      final messageBase58 = CryptoHelper.toBase58(messageBytes);
       debugPrint('Message (base58): $messageBase58');
 
       final payload = {
@@ -920,48 +729,34 @@ class WalletService extends ChangeNotifier {
       };
 
       // Encrypt the payload
-      final box = Box(
-        myPrivateKey: _dappKeyPair!,
-        theirPublicKey: PublicKey(_walletEncryptionPublicKey!),
+      final encrypted = CryptoHelper.encryptPayload(
+        _dappKeyPair!,
+        _walletEncryptionPublicKey!,
+        payload,
       );
 
-      final nonce = PineNaClUtils.randombytes(24);
-      final payloadJson = jsonEncode(payload);
-      debugPrint('Payload JSON: $payloadJson');
-
-      final encrypted = box.encrypt(
-        Uint8List.fromList(utf8.encode(payloadJson)),
-        nonce: nonce,
-      ).cipherText;
-
-      final payloadBase58 = _toBase58(Uint8List.fromList(encrypted.toList()));
-      final nonceBase58 = _toBase58(Uint8List.fromList(nonce.toList()));
-      final dappPublicKeyBase58 = _toBase58(Uint8List.fromList(_dappKeyPair!.publicKey.toList()));
-
-      // Get the sign message URL based on wallet
-      final signBaseUrl = wallet == SolanaWallet.phantom
-          ? _phantomSignMessageUrl
-          : _solflareSignMessageUrl;
+      final payloadBase58 = CryptoHelper.toBase58(encrypted.cipherText);
+      final nonceBase58 = CryptoHelper.toBase58(encrypted.nonce);
+      final dappPublicKeyBase58 = CryptoHelper.publicKeyBase58(_dappKeyPair!);
 
       // Build the sign message URL
-      final redirectUri = '$_appScheme://onSignMessage';
-      final params = {
-        'dapp_encryption_public_key': dappPublicKeyBase58,
-        'nonce': nonceBase58,
-        'redirect_link': redirectUri,
-        'payload': payloadBase58,
-      };
-
-      final queryString = params.entries
-          .map((e) => '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
-          .join('&');
-
-      final signUri = Uri.parse('$signBaseUrl?$queryString');
+      final signUri = DeepLinkHandler.buildSignUrl(
+        wallet,
+        dappPublicKeyBase58: dappPublicKeyBase58,
+        payloadBase58: payloadBase58,
+        nonceBase58: nonceBase58,
+      );
 
       debugPrint('Opening ${wallet.name} for signing...');
 
       // Save state for cold start recovery BEFORE launching wallet
-      await _saveSignState();
+      await DeepLinkHandler.saveSignState(
+        dappKeyPair: _dappKeyPair!,
+        walletSession: _walletSession!,
+        walletEncryptionPublicKey: _walletEncryptionPublicKey!,
+        wallet: _deepLinkWallet ?? wallet,
+        publicKey: _publicKey,
+      );
 
       // Create a completer to wait for the callback BEFORE launching
       // This prevents race condition where callback arrives before completer exists
@@ -976,7 +771,7 @@ class WalletService extends ChangeNotifier {
       if (!launched) {
         _errorMessage = 'Could not open ${wallet.name}';
         _deepLinkCompleter = null;
-        await _clearSignState();
+        await DeepLinkHandler.clearSignState();
         notifyListeners();
         return null;
       }
@@ -991,7 +786,7 @@ class WalletService extends ChangeNotifier {
       );
 
       // Clear saved state after successful handling
-      await _clearSignState();
+      await DeepLinkHandler.clearSignState();
 
       return result;
     } catch (e) {
@@ -1027,7 +822,7 @@ class WalletService extends ChangeNotifier {
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
-      _clearDeepLinkState();
+      DeepLinkHandler.clearConnectState();
       notifyListeners();
       return;
     }
@@ -1041,7 +836,7 @@ class WalletService extends ChangeNotifier {
       debugPrint('Wallet encryption public key: $walletPublicKeyBase58');
 
       if (walletPublicKeyBase58 != null) {
-        _walletEncryptionPublicKey = _fromBase58(walletPublicKeyBase58);
+        _walletEncryptionPublicKey = CryptoHelper.fromBase58(walletPublicKeyBase58);
         debugPrint('$walletName public key decoded, length: ${_walletEncryptionPublicKey!.length}');
       } else {
         debugPrint('WARNING: No encryption public key found in response!');
@@ -1056,26 +851,19 @@ class WalletService extends ChangeNotifier {
 
       if (dataBase58 != null && nonceBase58 != null && _dappKeyPair != null && _walletEncryptionPublicKey != null) {
         // Decrypt the data
-        final encryptedData = _fromBase58(dataBase58);
-        final nonce = _fromBase58(nonceBase58);
+        final encryptedData = CryptoHelper.fromBase58(dataBase58);
+        final nonce = CryptoHelper.fromBase58(nonceBase58);
 
         debugPrint('Encrypted data length: ${encryptedData.length}');
         debugPrint('Nonce length: ${nonce.length}');
         debugPrint('Decrypting $walletName response...');
 
-        // Create shared secret and decrypt
-        final box = Box(
-          myPrivateKey: _dappKeyPair!,
-          theirPublicKey: PublicKey(_walletEncryptionPublicKey!),
+        final json = CryptoHelper.decryptPayload(
+          _dappKeyPair!,
+          _walletEncryptionPublicKey!,
+          encryptedData,
+          nonce,
         );
-
-        final decrypted = box.decrypt(
-          ByteList(encryptedData),
-          nonce: Uint8List.fromList(nonce),
-        );
-
-        final jsonStr = utf8.decode(decrypted);
-        final json = jsonDecode(jsonStr) as Map<String, dynamic>;
         debugPrint('Decrypted $walletName data: $json');
 
         // Save the session for future requests
@@ -1089,7 +877,7 @@ class WalletService extends ChangeNotifier {
 
         if (walletPublicKey != null) {
           // Clear the saved deep link state
-          _clearDeepLinkState();
+          DeepLinkHandler.clearConnectState();
 
           if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
             // Normal flow - complete the completer
@@ -1117,7 +905,7 @@ class WalletService extends ChangeNotifier {
       // If we couldn't decrypt, try to get public key directly (shouldn't happen in normal flow)
       final directPublicKey = uri.queryParameters['public_key'];
       if (directPublicKey != null) {
-        _clearDeepLinkState();
+        DeepLinkHandler.clearConnectState();
         if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
           debugPrint('Using direct public key: $directPublicKey');
           _deepLinkCompleter!.complete(directPublicKey);
@@ -1132,7 +920,7 @@ class WalletService extends ChangeNotifier {
 
       debugPrint('Could not extract public key from $walletName response');
       _errorMessage = 'Failed to process wallet response';
-      _clearDeepLinkState();
+      DeepLinkHandler.clearConnectState();
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
@@ -1140,102 +928,10 @@ class WalletService extends ChangeNotifier {
       debugPrint('Error processing $walletName callback: $e');
       debugPrint('Stack trace: $stackTrace');
       _errorMessage = 'Failed to process wallet response';
-      _clearDeepLinkState();
+      DeepLinkHandler.clearConnectState();
       if (_deepLinkCompleter != null && !_deepLinkCompleter!.isCompleted) {
         _deepLinkCompleter!.complete(null);
       }
     }
-  }
-
-  // Base58 decoding helper
-  Uint8List _fromBase58(String input) {
-    if (input.isEmpty) return Uint8List(0);
-
-    // Count leading '1's (zeros in base58)
-    var zeros = 0;
-    while (zeros < input.length && input[zeros] == '1') {
-      zeros++;
-    }
-
-    // Allocate enough space
-    final size = ((input.length - zeros) * 733 ~/ 1000) + 1;
-    final b256 = List<int>.filled(size, 0);
-
-    var length = 0;
-    for (var i = zeros; i < input.length; i++) {
-      var carry = _base58Alphabet.indexOf(input[i]);
-      if (carry < 0) {
-        throw FormatException('Invalid base58 character: ${input[i]}');
-      }
-
-      var j = 0;
-      for (var it = size - 1; (carry != 0 || j < length) && it >= 0; it--, j++) {
-        carry += 58 * b256[it];
-        b256[it] = carry % 256;
-        carry ~/= 256;
-      }
-      length = j;
-    }
-
-    // Skip leading zeros in byte array result
-    var it = size - length;
-    while (it < size && b256[it] == 0) {
-      it++;
-    }
-
-    // Build result with leading zeros
-    final result = Uint8List(zeros + (size - it));
-    var index = zeros;
-    while (it < size) {
-      result[index++] = b256[it++];
-    }
-
-    return result;
-  }
-
-  // Base58 encoding helper
-  static const _base58Alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-  String _toBase58(Uint8List bytes) {
-    if (bytes.isEmpty) return '';
-
-    // Count leading zeros
-    var zeros = 0;
-    while (zeros < bytes.length && bytes[zeros] == 0) {
-      zeros++;
-    }
-
-    // Allocate enough space
-    final size = ((bytes.length - zeros) * 138 ~/ 100) + 1;
-    final b58 = List<int>.filled(size, 0);
-
-    var length = 0;
-    for (var i = zeros; i < bytes.length; i++) {
-      var carry = bytes[i];
-      var j = 0;
-      for (var it = size - 1; (carry != 0 || j < length) && it >= 0; it--, j++) {
-        carry += 256 * b58[it];
-        b58[it] = carry % 58;
-        carry ~/= 58;
-      }
-      length = j;
-    }
-
-    // Skip leading zeros in base58 result
-    var it = size - length;
-    while (it < size && b58[it] == 0) {
-      it++;
-    }
-
-    // Build result
-    final result = StringBuffer();
-    for (var i = 0; i < zeros; i++) {
-      result.write('1');
-    }
-    while (it < size) {
-      result.write(_base58Alphabet[b58[it++]]);
-    }
-
-    return result.toString();
   }
 }
