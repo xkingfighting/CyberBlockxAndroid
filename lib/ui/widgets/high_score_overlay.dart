@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
+import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
 
 class HighScoreOverlay extends StatefulWidget {
@@ -187,11 +188,11 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                         // Text input field
                         _buildNameInput(),
 
-                        // Cloud sync toggle (only when bound)
-                        if (isBound) ...[
-                          const SizedBox(height: 16),
-                          _buildCloudSyncToggle(),
-                        ],
+                        // Cloud sync toggle
+                        const SizedBox(height: 16),
+                        isBound
+                            ? _buildCloudSyncToggle()
+                            : _buildLoginPrompt(),
 
                         const SizedBox(height: 24),
 
@@ -270,6 +271,60 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoginPrompt() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BindAccountScreen(
+              onClose: () => Navigator.of(context).pop(),
+              onBindSuccess: () {
+                Navigator.of(context).pop();
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.cloud_upload_outlined,
+              color: Colors.grey,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                L.loginToUnlock.tr,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: CyberColors.cyan,
+              size: 14,
+            ),
+          ],
+        ),
       ),
     );
   }

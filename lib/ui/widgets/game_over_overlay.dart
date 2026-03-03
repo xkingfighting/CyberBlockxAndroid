@@ -4,6 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/global_leaderboard_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
+import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
 
 class GameOverOverlay extends StatefulWidget {
@@ -229,17 +230,17 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                               ],
                             ),
 
-                            // Cloud upload section - only show when bound
-                            if (isBound) ...[
-                              const SizedBox(height: 16),
-                              Container(
-                                height: 1,
-                                margin: const EdgeInsets.symmetric(horizontal: 8),
-                                color: Colors.grey.withValues(alpha: 0.2),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildCloudUploadSection(),
-                            ],
+                            // Cloud upload section
+                            const SizedBox(height: 16),
+                            Container(
+                              height: 1,
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              color: Colors.grey.withValues(alpha: 0.2),
+                            ),
+                            const SizedBox(height: 12),
+                            isBound
+                                ? _buildCloudUploadSection()
+                                : _buildLoginPrompt(),
                           ],
                         ),
                       ),
@@ -374,6 +375,53 @@ class _GameOverOverlayState extends State<GameOverOverlay>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildLoginPrompt() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BindAccountScreen(
+              onClose: () => Navigator.of(context).pop(),
+              onBindSuccess: () {
+                Navigator.of(context).pop();
+                if (mounted) {
+                  setState(() {});
+                  // Auto upload after binding
+                  _autoUploadScore();
+                }
+              },
+            ),
+          ),
+        );
+      },
+      child: Row(
+        children: [
+          const Icon(
+            Icons.cloud_upload_outlined,
+            color: Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              L.loginToUnlock.tr,
+              style: const TextStyle(
+                fontSize: 11,
+                fontFamily: 'monospace',
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          const Icon(
+            Icons.arrow_forward_ios,
+            color: CyberColors.cyan,
+            size: 14,
+          ),
+        ],
+      ),
     );
   }
 
