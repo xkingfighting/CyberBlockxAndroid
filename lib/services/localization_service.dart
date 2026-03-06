@@ -196,6 +196,14 @@ enum L {
   linkConflictTitle,
   linkConflictMessage,
   linkConflictConfirm,
+
+  // Share Card
+  shareAchievement,
+  uploadFailed,
+  continueText,
+  shareTitle,
+  saveImage,
+  generatingCard,
 }
 
 class LocalizationService extends ChangeNotifier {
@@ -409,6 +417,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: 'Account Conflict',
       L.linkConflictMessage: '{account} is already linked to another account. Transfer it to your current account? The previous account will lose this login method.',
       L.linkConflictConfirm: 'Transfer',
+      L.shareAchievement: 'SHARE',
+      L.uploadFailed: 'Upload failed',
+      L.continueText: 'CONTINUE',
+      L.shareTitle: 'SHARE ACHIEVEMENT',
+      L.saveImage: 'SAVE',
+      L.generatingCard: 'GENERATING...',
     },
 
     // Simplified Chinese
@@ -553,6 +567,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: '账号冲突',
       L.linkConflictMessage: '{account} 已绑定到其他账号。是否将其转移到当前账户？原账户将失去此登录方式。',
       L.linkConflictConfirm: '确认转移',
+      L.shareAchievement: '分享成绩',
+      L.uploadFailed: '上传失败',
+      L.continueText: '继续',
+      L.shareTitle: '分享成就',
+      L.saveImage: '保存',
+      L.generatingCard: '生成中...',
     },
 
     // Traditional Chinese
@@ -696,6 +716,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: '帳號衝突',
       L.linkConflictMessage: '{account} 已綁定到其他帳號。是否將其轉移到當前帳戶？原帳戶將失去此登入方式。',
       L.linkConflictConfirm: '確認轉移',
+      L.shareAchievement: '分享成績',
+      L.uploadFailed: '上傳失敗',
+      L.continueText: '繼續',
+      L.shareTitle: '分享成就',
+      L.saveImage: '儲存',
+      L.generatingCard: '產生中...',
     },
 
     // Japanese
@@ -839,6 +865,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: 'アカウント競合',
       L.linkConflictMessage: '{account} は既に別のアカウントに紐付けられています。現在のアカウントに移行しますか？元のアカウントはこのログイン方法を失います。',
       L.linkConflictConfirm: '移行する',
+      L.shareAchievement: 'シェア',
+      L.uploadFailed: 'アップロード失敗',
+      L.continueText: '続ける',
+      L.shareTitle: '成績をシェア',
+      L.saveImage: '保存',
+      L.generatingCard: '生成中...',
     },
 
     // Korean
@@ -983,6 +1015,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: '계정 충돌',
       L.linkConflictMessage: '{account}이(가) 이미 다른 계정에 연결되어 있습니다. 현재 계정으로 이전하시겠습니까? 이전 계정은 이 로그인 방법을 잃게 됩니다.',
       L.linkConflictConfirm: '이전',
+      L.shareAchievement: '공유',
+      L.uploadFailed: '업로드 실패',
+      L.continueText: '계속',
+      L.shareTitle: '성과 공유',
+      L.saveImage: '저장',
+      L.generatingCard: '생성 중...',
     },
 
     // French
@@ -1127,6 +1165,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: 'Conflit de compte',
       L.linkConflictMessage: '{account} est déjà lié à un autre compte. Le transférer vers votre compte actuel ? L\'ancien compte perdra cette méthode de connexion.',
       L.linkConflictConfirm: 'Transférer',
+      L.shareAchievement: 'PARTAGER',
+      L.uploadFailed: 'Échec du téléchargement',
+      L.continueText: 'CONTINUER',
+      L.shareTitle: 'PARTAGER LE SCORE',
+      L.saveImage: 'ENREGISTRER',
+      L.generatingCard: 'GÉNÉRATION...',
     },
 
     // German
@@ -1271,6 +1315,12 @@ class LocalizationService extends ChangeNotifier {
       L.linkConflictTitle: 'Kontokonflikt',
       L.linkConflictMessage: '{account} ist bereits mit einem anderen Konto verknüpft. Auf Ihr aktuelles Konto übertragen? Das vorherige Konto verliert diese Anmeldemethode.',
       L.linkConflictConfirm: 'Übertragen',
+      L.shareAchievement: 'TEILEN',
+      L.uploadFailed: 'Upload fehlgeschlagen',
+      L.continueText: 'WEITER',
+      L.shareTitle: 'ERGEBNIS TEILEN',
+      L.saveImage: 'SPEICHERN',
+      L.generatingCard: 'GENERIERUNG...',
     },
   };
 }

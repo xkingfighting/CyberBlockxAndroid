@@ -35,6 +35,10 @@ dependencies:
   app_links: ^6.3.3
   package_info_plus: ^8.0.0
 
+  # Sharing
+  share_plus: ^9.0.0
+  path_provider: ^2.1.0
+
   # Icons
   cupertino_icons: ^1.0.8
 

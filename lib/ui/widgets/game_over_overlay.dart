@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../models/share_card_data.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/global_leaderboard_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
 import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
+import 'share_card_sheet.dart';
 
 class GameOverOverlay extends StatefulWidget {
   final int score;
@@ -18,6 +21,7 @@ class GameOverOverlay extends StatefulWidget {
   final VoidCallback? onLeaderboard;
   final VoidCallback? onUploadSuccess;
   final bool alreadySynced; // Whether the score was already synced from HighScoreOverlay
+  final ScoreSubmitResponse? syncedResult; // Result from HighScoreOverlay sync
   final Map<String, dynamic>? integrity; // Anti-cheat integrity data from GameState
 
   const GameOverOverlay({
@@ -32,6 +36,7 @@ class GameOverOverlay extends StatefulWidget {
     this.onLeaderboard,
     this.onUploadSuccess,
     this.alreadySynced = false,
+    this.syncedResult,
     this.integrity,
   });
 
@@ -51,6 +56,7 @@ class _GameOverOverlayState extends State<GameOverOverlay>
   String? _uploadError;
   bool _isNewRecord = false;
   int _rank = 0;
+  ScoreSubmitResponse? _submitResult; // Full response for share card
 
   @override
   void initState() {
@@ -65,10 +71,15 @@ class _GameOverOverlayState extends State<GameOverOverlay>
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
 
-    // If already synced from HighScoreOverlay, mark as uploaded
+    // If already synced from HighScoreOverlay, mark as uploaded and use the result
     if (widget.alreadySynced) {
       _uploaded = true;
       _uploadToCloud = true;
+      if (widget.syncedResult != null) {
+        _submitResult = widget.syncedResult;
+        _isNewRecord = widget.syncedResult!.isNewRecord;
+        _rank = widget.syncedResult!.scoreRank;
+      }
     } else if (AuthService.instance.isBound && _uploadToCloud) {
       // Auto upload if bound and toggle is on (and not already synced)
       _autoUploadScore();
@@ -120,7 +131,8 @@ class _GameOverOverlayState extends State<GameOverOverlay>
         if (result != null) {
           _uploaded = true;
           _isNewRecord = result.isNewRecord;
-          _rank = result.rank;
+          _rank = result.scoreRank;
+          _submitResult = result;
           debugPrint('GameOverOverlay: Upload success, isNewRecord=${result.isNewRecord}, rank=${result.rank}');
           // Mark local leaderboard entry as synced
           LeaderboardService.instance.markAsSynced(widget.score);
@@ -277,6 +289,25 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       color: CyberColors.yellow,
                       onTap: widget.onLeaderboard ?? () {},
                     ),
+
+                    // Share button (only after successful upload)
+                    if (_uploaded && _submitResult != null) ...[
+                      const SizedBox(height: 16),
+                      _OutlineButton(
+                        text: L.shareAchievement.tr,
+                        icon: Icons.share,
+                        color: CyberColors.pink,
+                        onTap: () {
+                          final cardData = ShareCardData.fromSubmitResponse(
+                            response: _submitResult!,
+                            level: widget.level,
+                            platform: 'android',
+                            playTime: widget.playTime,
+                          );
+                          ShareCardSheet.show(context, cardData);
+                        },
+                      ),
+                    ],
 
                     const SizedBox(height: 20),
                   ],

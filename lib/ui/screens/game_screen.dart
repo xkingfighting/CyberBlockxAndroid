@@ -6,6 +6,7 @@ import '../../game/cyber_blockx_game.dart';
 import '../../services/audio_manager.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_service.dart';
 import '../../services/global_leaderboard_service.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/game_hud.dart';
@@ -43,6 +44,7 @@ class _GameScreenState extends State<GameScreen> {
   bool _showHighScoreDialog = false;
   bool _highScoreSubmitted = false;
   bool _scoreSynced = false; // Whether the score was synced to cloud
+  ScoreSubmitResponse? _syncedSubmitResult; // Full response from cloud sync
   int _scoreRank = 0;
 
   @override
@@ -68,6 +70,7 @@ class _GameScreenState extends State<GameScreen> {
     _showHighScoreDialog = false;
     _highScoreSubmitted = false;
     _scoreSynced = false;
+    _syncedSubmitResult = null;
     _scoreRank = 0;
   }
 
@@ -155,6 +158,7 @@ class _GameScreenState extends State<GameScreen> {
       if (result != null) {
         debugPrint('GameScreen: Score uploaded successfully, isNewRecord=${result.isNewRecord}, rank=${result.rank}');
         didSync = true;
+        _syncedSubmitResult = result;
       } else {
         debugPrint('GameScreen: Score upload failed');
       }
@@ -325,12 +329,54 @@ class _GameScreenState extends State<GameScreen> {
               Positioned.fill(
                 child: HighScoreOverlay(
                   score: _gameState.scoring.score,
+                  level: _gameState.scoring.level,
+                  lines: _gameState.scoring.totalLines,
                   rank: _scoreRank,
+                  playTime: _playTime,
                   onSkip: () {
                     _submitScore('Player');
                   },
                   onSubmit: (name, syncToCloud) async {
-                    await _submitScore(name, syncToCloud: syncToCloud, navigateToLeaderboard: true);
+                    if (_highScoreSubmitted) return null;
+                    _highScoreSubmitted = true;
+
+                    ScoreSubmitResponse? result;
+                    bool didSync = false;
+
+                    // Upload to cloud if requested
+                    if (syncToCloud && AuthService.instance.isBound) {
+                      result = await GlobalLeaderboardService.instance.submitScore(
+                        score: _gameState.scoring.score,
+                        lines: _gameState.scoring.totalLines,
+                        level: _gameState.scoring.level,
+                        source: 'game_daily',
+                        integrity: _gameState.getIntegrityData(),
+                      );
+                      if (result != null) {
+                        didSync = true;
+                        _syncedSubmitResult = result;
+                      }
+                    }
+
+                    // Save to local leaderboard
+                    await LeaderboardService.instance.addScore(
+                      score: _gameState.scoring.score,
+                      level: _gameState.scoring.level,
+                      lines: _gameState.scoring.totalLines,
+                      name: name,
+                      isSynced: didSync,
+                    );
+
+                    setState(() {
+                      _scoreSynced = didSync;
+                    });
+
+                    return result;
+                  },
+                  onContinue: () {
+                    setState(() {
+                      _showHighScoreDialog = false;
+                    });
                   },
                 ),
               ),
@@ -345,6 +391,7 @@ class _GameScreenState extends State<GameScreen> {
                   maxCombo: _maxCombo,
                   playTime: _playTime,
                   alreadySynced: _scoreSynced,
+                  syncedResult: _syncedSubmitResult,
                   integrity: _gameState.getIntegrityData(),
                   onRestart: () {
                     _startNewGame();

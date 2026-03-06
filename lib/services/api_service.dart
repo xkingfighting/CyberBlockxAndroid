@@ -703,6 +703,15 @@ class ScoreSubmitResponse {
   final int bestLines;
   final bool isNewRecord;
   final int rank;
+  final int scoreRank;              // 当前分数的排名（用于分享卡）
+  // Share card fields
+  final int? countryRank;
+  final int? scoreCountryRank;      // 当前分数的国家排名（用于分享卡）
+  final String countryCode;
+  final int countryTotal;
+  final int totalPlayers;
+  final String shareId;
+  final String username;
 
   ScoreSubmitResponse({
     required this.score,
@@ -710,6 +719,14 @@ class ScoreSubmitResponse {
     required this.bestLines,
     required this.isNewRecord,
     required this.rank,
+    required this.scoreRank,
+    this.countryRank,
+    this.scoreCountryRank,
+    this.countryCode = '',
+    this.countryTotal = 0,
+    this.totalPlayers = 0,
+    this.shareId = '',
+    this.username = '',
   });
 
   factory ScoreSubmitResponse.fromJson(Map<String, dynamic> json) {
@@ -719,6 +736,14 @@ class ScoreSubmitResponse {
       bestLines: _parseInt(json['bestLines']),
       isNewRecord: json['isNewRecord'] == true,
       rank: _parseInt(json['rank']),
+      scoreRank: json['scoreRank'] != null ? _parseInt(json['scoreRank']) : _parseInt(json['rank']),
+      countryRank: json['countryRank'] != null ? _parseInt(json['countryRank']) : null,
+      scoreCountryRank: json['scoreCountryRank'] != null ? _parseInt(json['scoreCountryRank']) : null,
+      countryCode: json['countryCode']?.toString() ?? '',
+      countryTotal: _parseInt(json['countryTotal']),
+      totalPlayers: _parseInt(json['totalPlayers']),
+      shareId: json['shareId']?.toString() ?? '',
+      username: json['username']?.toString() ?? '',
     );
   }
 

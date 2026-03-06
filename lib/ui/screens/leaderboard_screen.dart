@@ -306,9 +306,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             ),
           ),
           Expanded(
-            flex: 2,
             child: Text(
               L.playerName.tr.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -317,10 +318,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
             ),
           ),
+          if (isGlobal)
+            SizedBox(
+              width: 30,
+              child: Icon(
+                Icons.flag_outlined,
+                size: 14,
+                color: CyberColors.cyan.withValues(alpha: 0.8),
+              ),
+            ),
           Expanded(
             child: Text(
               L.score.tr.toUpperCase(),
               textAlign: TextAlign.right,
+              maxLines: 1,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -329,27 +340,39 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              L.level.tr.toUpperCase(),
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-                color: CyberColors.cyan.withValues(alpha: 0.8),
+          SizedBox(
+            width: 56,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                L.level.tr.toUpperCase(),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                  color: CyberColors.cyan.withValues(alpha: 0.8),
+                ),
               ),
             ),
           ),
-          Expanded(
-            child: Text(
-              L.lines.tr.toUpperCase(),
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-                color: CyberColors.cyan.withValues(alpha: 0.8),
+          SizedBox(
+            width: 56,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                L.lines.tr.toUpperCase(),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                  color: CyberColors.cyan.withValues(alpha: 0.8),
+                ),
               ),
             ),
           ),
@@ -557,7 +580,6 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
                   ),
           ),
           Expanded(
-            flex: 2,
             child: Row(
               children: [
                 Flexible(
@@ -591,31 +613,37 @@ class _AnimatedLocalRowState extends State<_AnimatedLocalRow>
             child: Text(
               _formatScore(widget.entry.score),
               textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
                 color: rank == 1 ? CyberColors.yellow : CyberColors.cyan,
               ),
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 56,
             child: Text(
               '${widget.entry.level}',
               textAlign: TextAlign.right,
+              maxLines: 1,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: 'monospace',
                 color: CyberColors.green,
               ),
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 56,
             child: Text(
               '${widget.entry.lines}',
               textAlign: TextAlign.right,
+              maxLines: 1,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: 'monospace',
                 color: CyberColors.purple,
               ),
@@ -784,7 +812,6 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
                   ),
           ),
           Expanded(
-            flex: 2,
             child: Row(
               children: [
                 if (isCurrentUser) ...[
@@ -810,35 +837,70 @@ class _AnimatedGlobalRowState extends State<_AnimatedGlobalRow>
               ],
             ),
           ),
+          // Country flag column
+          SizedBox(
+            width: 30,
+            child: widget.entry.countryCode.isNotEmpty
+                ? Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(2),
+                      child: Image.network(
+                        'https://flagcdn.com/w40/${widget.entry.countryCode.toLowerCase()}.png',
+                        width: 20,
+                        height: 15,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        loadingBuilder: (_, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 20,
+                            height: 15,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           Expanded(
             child: Text(
               _formatScore(widget.entry.bestScore),
               textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
                 color: rank == 1 ? CyberColors.yellow : CyberColors.cyan,
               ),
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 56,
             child: Text(
               '${widget.entry.level}',
               textAlign: TextAlign.right,
+              maxLines: 1,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: 'monospace',
                 color: CyberColors.green,
               ),
             ),
           ),
-          Expanded(
+          SizedBox(
+            width: 56,
             child: Text(
               '${widget.entry.bestLines}',
               textAlign: TextAlign.right,
+              maxLines: 1,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontFamily: 'monospace',
                 color: CyberColors.purple,
               ),

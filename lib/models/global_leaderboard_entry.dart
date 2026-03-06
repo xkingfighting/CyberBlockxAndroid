@@ -11,6 +11,7 @@ class GlobalLeaderboardEntry {
   final int bestScore;    // Best score
   final int level;
   final int playCount;
+  final String countryCode; // ISO 3166-1 Alpha-2, e.g. "US" (empty if unknown)
 
   GlobalLeaderboardEntry._({
     required this.rank,
@@ -21,6 +22,7 @@ class GlobalLeaderboardEntry {
     required this.bestScore,
     required this.level,
     this.playCount = 0,
+    this.countryCode = '',
   });
 
   /// Display name: prefers username (already masked), falls back to CBX-000123
@@ -54,6 +56,7 @@ class GlobalLeaderboardEntry {
       bestScore: _parseInt(json['bestScore']),
       level: _parseInt(json['level']),
       playCount: _parseInt(json['playCount']),
+      countryCode: json['countryCode'] as String? ?? '',
     );
   }
 
@@ -106,6 +109,7 @@ class GlobalLeaderboardEntry {
       'bestScore': bestScore,
       'level': level,
       'playCount': playCount,
+      'countryCode': countryCode,
     };
   }
 }

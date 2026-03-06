@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import '../../models/share_card_data.dart';
+import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
 import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
+import 'share_card_sheet.dart';
 
 class HighScoreOverlay extends StatefulWidget {
   final int score;
+  final int level;
+  final int lines;
   final int rank;
+  final Duration? playTime;
   final VoidCallback onSkip;
-  final Future<void> Function(String name, bool syncToCloud) onSubmit;
+  final Future<ScoreSubmitResponse?> Function(String name, bool syncToCloud) onSubmit;
+  final VoidCallback onContinue; // Dismiss after viewing share
 
   const HighScoreOverlay({
     super.key,
     required this.score,
+    required this.level,
+    required this.lines,
     required this.rank,
+    this.playTime,
     required this.onSkip,
     required this.onSubmit,
+    required this.onContinue,
   });
 
   @override
@@ -33,6 +44,8 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
   bool _syncToCloud = true; // Default ON when bound
   bool _isSubmitting = false;
+  bool _submitted = false;
+  ScoreSubmitResponse? _submitResult;
 
   @override
   void initState() {
@@ -71,7 +84,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
   }
 
   Future<void> _handleSubmit() async {
-    if (_isSubmitting) return;
+    if (_isSubmitting || _submitted) return;
 
     setState(() {
       _isSubmitting = true;
@@ -79,7 +92,7 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
     final name = _nameController.text.trim();
     final isBound = AuthService.instance.isBound;
-    await widget.onSubmit(
+    final result = await widget.onSubmit(
       name.isEmpty ? 'PLAYER' : name,
       isBound && _syncToCloud,
     );
@@ -87,8 +100,21 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
     if (mounted) {
       setState(() {
         _isSubmitting = false;
+        _submitted = true;
+        _submitResult = result;
       });
     }
+  }
+
+  void _openShareSheet() {
+    if (_submitResult == null) return;
+    final cardData = ShareCardData.fromSubmitResponse(
+      response: _submitResult!,
+      level: widget.level,
+      platform: 'android',
+      playTime: widget.playTime,
+    );
+    ShareCardSheet.show(context, cardData);
   }
 
   @override
@@ -196,18 +222,26 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
                         const SizedBox(height: 24),
 
-                        // Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSkipButton(),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _buildSubmitButton(),
-                            ),
+                        // Buttons: before submit → Skip + Submit, after submit → Share + Continue
+                        if (_submitted) ...[
+                          // Share button (only if we got a result)
+                          if (_submitResult != null) ...[
+                            _buildShareButton(),
+                            const SizedBox(height: 12),
                           ],
-                        ),
+                          _buildContinueButton(),
+                        ] else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSkipButton(),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildSubmitButton(),
+                              ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -559,6 +593,83 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShareButton() {
+    return GestureDetector(
+      onTap: _openShareSheet,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [CyberColors.pink, CyberColors.purple],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: CyberColors.pink.withValues(alpha: 0.4),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.share,
+                color: Colors.white.withValues(alpha: 0.9),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                L.shareAchievement.tr,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                  color: Colors.white.withValues(alpha: 0.95),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
+    return GestureDetector(
+      onTap: widget.onContinue,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: ColoredBox(
+          color: const Color(0xFF0A0A12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Colors.grey.withValues(alpha: 0.5),
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                L.continueText.tr,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                  color: Colors.white,
+                ),
+              ),
+            ),
           ),
         ),
       ),
