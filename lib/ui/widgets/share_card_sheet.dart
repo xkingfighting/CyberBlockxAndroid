@@ -9,16 +9,17 @@ import '../theme/cyber_theme.dart';
 /// Bottom sheet for previewing and sharing the achievement card.
 class ShareCardSheet extends StatefulWidget {
   final ShareCardData data;
+  final Uint8List? gameScreenshot;
 
-  const ShareCardSheet({super.key, required this.data});
+  const ShareCardSheet({super.key, required this.data, this.gameScreenshot});
 
   /// Show the share card sheet as a modal bottom sheet.
-  static Future<void> show(BuildContext context, ShareCardData data) {
+  static Future<void> show(BuildContext context, ShareCardData data, {Uint8List? gameScreenshot}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => ShareCardSheet(data: data),
+      builder: (_) => ShareCardSheet(data: data, gameScreenshot: gameScreenshot),
     );
   }
 
@@ -27,7 +28,6 @@ class ShareCardSheet extends StatefulWidget {
 }
 
 class _ShareCardSheetState extends State<ShareCardSheet> {
-  ShareCardSize _selectedSize = ShareCardSize.story;
   Uint8List? _previewBytes;
   bool _isGenerating = false;
   bool _isSharing = false;
@@ -42,10 +42,7 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
   Future<void> _generatePreview() async {
     setState(() => _isGenerating = true);
 
-    final bytes = await ShareCardPainter.generateImage(
-      widget.data,
-      size: _selectedSize,
-    );
+    final bytes = await ShareCardPainter.generateImage(widget.data, gameScreenshot: widget.gameScreenshot);
 
     if (mounted) {
       setState(() {
@@ -55,31 +52,27 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
     }
   }
 
-  void _onSizeChanged(ShareCardSize size) {
-    if (size == _selectedSize) return;
-    setState(() {
-      _selectedSize = size;
-      _previewBytes = null;
-    });
-    _generatePreview();
-  }
-
   Future<void> _shareCard() async {
+    if (_isSharing) return; // Debounce rapid taps
     setState(() {
       _isSharing = true;
       _statusMessage = null;
     });
 
     try {
-      final file = await ShareCardService.instance.generateCard(
+      // Reuse preview bytes if available to avoid re-rendering
+      final file = await ShareCardService.instance.generateCardFromBytes(
         widget.data,
-        size: _selectedSize,
+        pngBytes: _previewBytes,
+        gameScreenshot: widget.gameScreenshot,
       );
 
       if (file != null && mounted) {
         await ShareCardService.instance.shareGeneral(file, widget.data);
         if (mounted) {
-          setState(() => _statusMessage = 'Shared!');
+          // Auto-close after successful share
+          Navigator.of(context).pop();
+          return;
         }
       } else {
         if (mounted) {
@@ -87,8 +80,9 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
         }
       }
     } catch (e) {
+      debugPrint('ShareCard: Share failed: $e');
       if (mounted) {
-        setState(() => _statusMessage = 'Share failed');
+        setState(() => _statusMessage = 'Share failed: $e');
       }
     }
 
@@ -98,15 +92,18 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
   }
 
   Future<void> _saveCard() async {
+    if (_isSharing) return; // Debounce rapid taps
     setState(() {
       _isSharing = true;
       _statusMessage = null;
     });
 
     try {
-      final file = await ShareCardService.instance.generateCard(
+      // Reuse preview bytes if available to avoid re-rendering
+      final file = await ShareCardService.instance.generateCardFromBytes(
         widget.data,
-        size: _selectedSize,
+        pngBytes: _previewBytes,
+        gameScreenshot: widget.gameScreenshot,
       );
 
       if (file != null && mounted) {
@@ -166,11 +163,6 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
                 ),
               ),
 
-              // Size selector
-              _buildSizeSelector(),
-
-              const SizedBox(height: 12),
-
               // Preview
               Expanded(child: _buildPreview()),
 
@@ -195,54 +187,6 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildSizeSelector() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: ShareCardSize.values.map((size) {
-          final selected = size == _selectedSize;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => _onSizeChanged(size),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? CyberColors.cyan.withValues(alpha: 0.15) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: selected ? CyberColors.cyan : CyberColors.textMuted,
-                    width: selected ? 1.5 : 0.5,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      size.label,
-                      style: CyberTextStyles.body.copyWith(
-                        color: selected ? CyberColors.cyan : CyberColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${size.width}×${size.height}',
-                      style: CyberTextStyles.body.copyWith(
-                        color: CyberColors.textMuted,
-                        fontSize: 9,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
     );
   }
 
@@ -286,7 +230,6 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
         children: [
           // Share button (primary)
           Expanded(
-            flex: 3,
             child: _ShareActionButton(
               icon: Icons.share,
               label: L.shareAchievement.tr,
@@ -298,7 +241,6 @@ class _ShareCardSheetState extends State<ShareCardSheet> {
           const SizedBox(width: 8),
           // Save button
           Expanded(
-            flex: 2,
             child: _ShareActionButton(
               icon: Icons.save_alt,
               label: L.saveImage.tr,

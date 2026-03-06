@@ -1,9 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../models/share_card_data.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
+import '../../solana/wallet_service.dart';
 import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
 import 'share_card_sheet.dart';
@@ -14,6 +16,7 @@ class HighScoreOverlay extends StatefulWidget {
   final int lines;
   final int rank;
   final Duration? playTime;
+  final Uint8List? gameScreenshot;
   final VoidCallback onSkip;
   final Future<ScoreSubmitResponse?> Function(String name, bool syncToCloud) onSubmit;
   final VoidCallback onContinue; // Dismiss after viewing share
@@ -25,6 +28,7 @@ class HighScoreOverlay extends StatefulWidget {
     required this.lines,
     required this.rank,
     this.playTime,
+    this.gameScreenshot,
     required this.onSkip,
     required this.onSubmit,
     required this.onContinue,
@@ -108,13 +112,14 @@ class _HighScoreOverlayState extends State<HighScoreOverlay>
 
   void _openShareSheet() {
     if (_submitResult == null) return;
+    final platform = WalletService.instance.isSeedVaultAvailable ? 'seeker' : 'android';
     final cardData = ShareCardData.fromSubmitResponse(
       response: _submitResult!,
       level: widget.level,
-      platform: 'android',
+      platform: platform,
       playTime: widget.playTime,
     );
-    ShareCardSheet.show(context, cardData);
+    ShareCardSheet.show(context, cardData, gameScreenshot: widget.gameScreenshot);
   }
 
   @override

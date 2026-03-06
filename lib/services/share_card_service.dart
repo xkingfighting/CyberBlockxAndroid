@@ -16,11 +16,12 @@ class ShareCardService {
   Future<File?> generateCard(
     ShareCardData data, {
     ShareCardSize size = ShareCardSize.story,
+    Uint8List? gameScreenshot,
   }) async {
     try {
       final stopwatch = Stopwatch()..start();
 
-      final bytes = await ShareCardPainter.generateImage(data, size: size);
+      final bytes = await ShareCardPainter.generateImage(data, size: size, gameScreenshot: gameScreenshot);
       if (bytes == null) {
         debugPrint('ShareCard: Failed to generate image');
         return null;
@@ -33,7 +34,7 @@ class ShareCardService {
       final tempDir = await getTemporaryDirectory();
       final fileName = 'cyberblockx_${data.shareId}_${size.label.toLowerCase()}.png';
       final file = File('${tempDir.path}/$fileName');
-      await file.writeAsBytes(bytes);
+      await file.writeAsBytes(bytes, flush: true);
 
       return file;
     } catch (e) {
@@ -42,12 +43,60 @@ class ShareCardService {
     }
   }
 
+  /// Generate the share card image from existing bytes or render fresh.
+  /// Reuses pre-rendered preview bytes to avoid duplicate rendering.
+  Future<File?> generateCardFromBytes(
+    ShareCardData data, {
+    Uint8List? pngBytes,
+    ShareCardSize size = ShareCardSize.story,
+    Uint8List? gameScreenshot,
+  }) async {
+    try {
+      final bytes = pngBytes ?? await ShareCardPainter.generateImage(data, size: size, gameScreenshot: gameScreenshot);
+      if (bytes == null) {
+        debugPrint('ShareCard: No bytes available for card');
+        return null;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final fileName = 'cyberblockx_${data.shareId}_${size.label.toLowerCase()}.png';
+      final file = File('${tempDir.path}/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+
+      // Verify the file was written correctly
+      final written = await file.length();
+      debugPrint('ShareCard: Wrote $written bytes to ${file.path} (source: ${bytes.length} bytes)');
+      if (written != bytes.length) {
+        debugPrint('ShareCard: WARNING - file size mismatch! Expected ${bytes.length}, got $written');
+      }
+
+      return file;
+    } catch (e) {
+      debugPrint('ShareCard: Error generating card from bytes: $e');
+      return null;
+    }
+  }
+
   /// Share to any platform via system share sheet.
   Future<void> shareGeneral(File imageFile, ShareCardData data) async {
+    // Verify file exists and has content before sharing
+    if (!await imageFile.exists()) {
+      debugPrint('ShareCard: Image file does not exist: ${imageFile.path}');
+      throw Exception('Share card image file not found');
+    }
+    final fileSize = await imageFile.length();
+    if (fileSize == 0) {
+      debugPrint('ShareCard: Image file is empty: ${imageFile.path}');
+      throw Exception('Share card image file is empty');
+    }
+    debugPrint('ShareCard: Sharing file: ${imageFile.path} (${fileSize} bytes)');
+
     final shareText = _buildShareText(data);
+    final fileName = imageFile.path.split('/').last;
     await Share.shareXFiles(
-      [XFile(imageFile.path)],
+      [XFile(imageFile.path, mimeType: 'image/png', name: fileName)],
       text: shareText,
+      subject: 'CyberBlockX Score',
     );
   }
 

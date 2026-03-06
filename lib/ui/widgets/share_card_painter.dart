@@ -16,40 +16,61 @@ class ShareCardPainter {
   static Future<Uint8List?> generateImage(
     ShareCardData data, {
     ShareCardSize size = ShareCardSize.story,
+    Uint8List? gameScreenshot,
   }) async {
-    const ssaa = 2.0;
+    const ssaa = 3.0;
     final w = size.width.toDouble();
     final h = size.height.toDouble();
 
-    // Pass 1 — render at 2× resolution for sharp edges
-    final hiRec = ui.PictureRecorder();
-    final hiCanvas = Canvas(hiRec);
-    hiCanvas.scale(ssaa);
-    _drawCard(hiCanvas, data, w, h, size);
-    final hiPic = hiRec.endRecording();
-    final hiImg = await hiPic.toImage(
-      (w * ssaa).toInt(),
-      (h * ssaa).toInt(),
-    );
-    hiPic.dispose();
+    // Decode game screenshot if provided
+    ui.Image? bgImage;
+    if (gameScreenshot != null) {
+      debugPrint('ShareCard: Decoding screenshot, ${gameScreenshot.length} bytes');
+      try {
+        final codec = await ui.instantiateImageCodec(gameScreenshot);
+        final frame = await codec.getNextFrame();
+        bgImage = frame.image;
+        debugPrint('ShareCard: Decoded bg image ${bgImage.width}x${bgImage.height}');
+      } catch (e) {
+        debugPrint('ShareCard: Failed to decode screenshot: $e');
+      }
+    } else {
+      debugPrint('ShareCard: [v5-phase] No gameScreenshot provided, using solid background');
+    }
 
-    // Pass 2 — downscale to target resolution (high-quality filter)
-    final rec = ui.PictureRecorder();
-    final canvas = Canvas(rec);
-    canvas.drawImageRect(
-      hiImg,
-      Rect.fromLTWH(0, 0, w * ssaa, h * ssaa),
-      Rect.fromLTWH(0, 0, w, h),
-      Paint()..filterQuality = FilterQuality.high,
-    );
-    hiImg.dispose();
+    // Pass 1 — render at 3× resolution for sharp edges
+    try {
+      final hiRec = ui.PictureRecorder();
+      final hiCanvas = Canvas(hiRec);
+      hiCanvas.scale(ssaa);
+      _drawCard(hiCanvas, data, w, h, size, backgroundImage: bgImage);
+      final hiPic = hiRec.endRecording();
+      final hiImg = await hiPic.toImage(
+        (w * ssaa).toInt(),
+        (h * ssaa).toInt(),
+      );
+      hiPic.dispose();
 
-    final pic = rec.endRecording();
-    final img = await pic.toImage(size.width, size.height);
-    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
-    img.dispose();
-    pic.dispose();
-    return bytes?.buffer.asUint8List();
+      // Pass 2 — downscale to target resolution (high-quality filter)
+      final rec = ui.PictureRecorder();
+      final canvas = Canvas(rec);
+      canvas.drawImageRect(
+        hiImg,
+        Rect.fromLTWH(0, 0, w * ssaa, h * ssaa),
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()..filterQuality = FilterQuality.high,
+      );
+      hiImg.dispose();
+
+      final pic = rec.endRecording();
+      final img = await pic.toImage(size.width, size.height);
+      final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+      img.dispose();
+      pic.dispose();
+      return bytes?.buffer.asUint8List();
+    } finally {
+      bgImage?.dispose(); // Always release decoded screenshot
+    }
   }
 
   static void _drawCard(
@@ -57,54 +78,92 @@ class ShareCardPainter {
     ShareCardData data,
     double w,
     double h,
-    ShareCardSize size,
-  ) {
-    _drawBackground(canvas, w, h);
-    if (size == ShareCardSize.twitter) {
-      _drawHorizontalLayout(canvas, data, w, h);
-    } else {
-      _drawVerticalLayout(canvas, data, w, h, size == ShareCardSize.social);
-    }
+    ShareCardSize size, {
+    ui.Image? backgroundImage,
+  }) {
+    _drawBackground(canvas, w, h, backgroundImage);
+    // Always use vertical Story layout (1080×1920)
+    _drawVerticalLayout(canvas, data, w, h);
   }
 
   // ============================================================
   // BACKGROUND — dark cyberpunk with grid, scanlines, HUD bars
   // ============================================================
 
-  static void _drawBackground(Canvas canvas, double w, double h) {
-    // Base dark
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, w, h),
-      Paint()..color = const Color(0xFF08080D),
-    );
+  static void _drawBackground(Canvas canvas, double w, double h, [ui.Image? backgroundImage]) {
+    if (backgroundImage != null) {
+      // Draw game screenshot as background (center-crop to fill)
+      final imgW = backgroundImage.width.toDouble();
+      final imgH = backgroundImage.height.toDouble();
+      final imgAspect = imgW / imgH;
+      final cardAspect = w / h;
 
-    // Subtle gradient overlay (reduced from 0x12 to 0x0E)
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, w, h),
-      Paint()
-        ..shader = ui.Gradient.linear(
-          Offset.zero,
-          Offset(w, h),
-          [
-            const Color(0x0E00FFFF),
-            const Color(0x06AA00FF),
-            const Color(0x0EFF00FF),
-          ],
-          [0.0, 0.5, 1.0],
-        ),
-    );
+      Rect srcRect;
+      if (imgAspect > cardAspect) {
+        final cropW = imgH * cardAspect;
+        srcRect = Rect.fromLTWH((imgW - cropW) / 2, 0, cropW, imgH);
+      } else {
+        final cropH = imgW / cardAspect;
+        srcRect = Rect.fromLTWH(0, (imgH - cropH) / 2, imgW, cropH);
+      }
 
-    // Radial warmth centered at score zone
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, w, h),
-      Paint()
-        ..shader = ui.Gradient.radial(
-          Offset(w / 2, h * 0.32),
-          w * 0.6,
-          [const Color(0x0800FFFF), const Color(0x00000000)],
-          [0.0, 1.0],
-        ),
-    );
+      canvas.drawImageRect(
+        backgroundImage,
+        srcRect,
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()..filterQuality = FilterQuality.high,
+      );
+
+      // Dark overlay gradient for text readability
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset.zero,
+            Offset(0, h),
+            [
+              const Color(0xD0000000), // top 81%
+              const Color(0x99000000), // middle 60%
+              const Color(0xD0000000), // bottom 81%
+            ],
+            [0.0, 0.45, 1.0],
+          ),
+      );
+    } else {
+      // Fallback: solid dark background
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()..color = const Color(0xFF08080D),
+      );
+
+      // Subtle gradient overlay
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = ui.Gradient.linear(
+            Offset.zero,
+            Offset(w, h),
+            [
+              const Color(0x0E00FFFF),
+              const Color(0x06AA00FF),
+              const Color(0x0EFF00FF),
+            ],
+            [0.0, 0.5, 1.0],
+          ),
+      );
+
+      // Radial warmth centered at score zone
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, w, h),
+        Paint()
+          ..shader = ui.Gradient.radial(
+            Offset(w / 2, h * 0.32),
+            w * 0.6,
+            [const Color(0x0800FFFF), const Color(0x00000000)],
+            [0.0, 1.0],
+          ),
+      );
+    }
 
     _drawGrid(canvas, w, h);
     _drawScanlines(canvas, w, h);
@@ -208,149 +267,46 @@ class ShareCardPainter {
     ShareCardData data,
     double w,
     double h,
-    bool isSquare,
   ) {
     final s = w / 1080.0;
-    final c = isSquare;
-    double y = (c ? 50 : 70) * s;
+    double y = 70 * s;
 
     // 1. Brand header
-    y = _drawBrandHeader(canvas, data, w, y, s, c);
-    y += (c ? 12 : 20) * s;
+    y = _drawBrandHeader(canvas, data, w, y, s);
+    y += 20 * s;
 
     // 2. Player section (name + country + badge)
-    y = _drawPlayerSection(canvas, data, w, y, s, c);
-    y += (c ? 15 : 30) * s;
+    y = _drawPlayerSection(canvas, data, w, y, s);
+    y += 30 * s;
 
     // 3. SCORE HERO — dominant center (~26% of card height)
-    y = _drawScoreHero(canvas, data, w, y, s, c, h);
-    y += (c ? 15 : 35) * s;
+    y = _drawScoreHero(canvas, data, w, y, s, h);
+    y += 35 * s;
 
     // 4. Rank panel
-    y = _drawRankPanel(canvas, data, w, y, s, c);
-    y += (c ? 10 : 15) * s;
+    y = _drawRankPanel(canvas, data, w, y, s);
+    y += 15 * s;
 
     // 5. Mini stats
-    y = _drawMiniStats(canvas, data, w, y, s, c);
+    y = _drawMiniStats(canvas, data, w, y, s);
 
-    // 6. For story: push CTA to ~70% with filler decorations in the gap
-    if (!c) {
-      final ctaTarget = h * 0.70;
-      if (y + 40 * s < ctaTarget) {
-        _drawFillerDecorations(canvas, w, y + 20 * s, ctaTarget - 15 * s, s);
-        y = ctaTarget;
-      } else {
-        y += 40 * s;
-      }
+    // 6. Push CTA to ~70% with filler decorations in the gap
+    final ctaTarget = h * 0.70;
+    if (y + 40 * s < ctaTarget) {
+      _drawFillerDecorations(canvas, w, y + 20 * s, ctaTarget - 15 * s, s);
+      y = ctaTarget;
     } else {
-      y += 20 * s;
+      y += 40 * s;
     }
 
     // 7. Bottom section (CTA + challenge + branding)
-    y = _drawBottomSection(canvas, data, w, y, s, c);
-    y += (c ? 10 : 20) * s;
+    y = _drawBottomSection(canvas, data, w, y, s);
+    y += 20 * s;
 
     // 8. Tetromino decorations in remaining space
-    _drawTetrominoDecoration(canvas, w, h, y, s, c);
+    _drawTetrominoDecoration(canvas, w, h, y, s);
 
     // 9. Footer ID (anchored to bottom)
-    _drawFooterID(canvas, data, w, h, s);
-  }
-
-  // ============================================================
-  // HORIZONTAL LAYOUT (Twitter 16:9)
-  // ============================================================
-
-  static void _drawHorizontalLayout(
-    Canvas canvas,
-    ShareCardData data,
-    double w,
-    double h,
-  ) {
-    final s = w / 1600.0;
-    final margin = 50.0 * s;
-
-    // Left panel: Brand + Player + Score hero
-    final leftW = w * 0.55;
-    double ly = margin;
-
-    ly = _drawBrandHeader(canvas, data, leftW, ly, s, true);
-    ly += 12 * s;
-    ly = _drawPlayerSection(canvas, data, leftW, ly, s, true);
-    ly += 18 * s;
-    _drawScoreHero(canvas, data, leftW, ly, s, true, h);
-
-    // Right panel: Rankings + Stats + Challenge
-    final rx = w * 0.58;
-    final rw = w * 0.38;
-    double ry = margin + 20 * s;
-
-    // Rank items
-    final rankLines = <String>[];
-    rankLines.add('GLOBAL RANK  #${_formatNumber(data.rank)}');
-    if (data.hasCountryData) {
-      rankLines.add(
-        '${data.countryCode.toUpperCase()} RANK  #${_formatNumber(data.countryRank!)} / ${_formatNumber(data.countryTotal)}',
-      );
-    }
-    if (data.totalPlayers > 0) {
-      final pct = data.topPercentage;
-      final pctStr =
-          pct < 1 ? pct.toStringAsFixed(1) : pct.toStringAsFixed(0);
-      rankLines.add('TOP $pctStr% WORLDWIDE');
-    }
-    for (final line in rankLines) {
-      final p = _buildParagraph(
-        line,
-        fontSize: 18 * s,
-        color: Colors.white,
-        fontWeight: FontWeight.w500,
-        maxWidth: rw,
-      );
-      canvas.drawParagraph(p, Offset(rx, ry));
-      ry += p.height + 10 * s;
-    }
-
-    ry += 20 * s;
-
-    // Stats
-    for (final (label, value) in [
-      ('LINES', '${data.lines}'),
-      ('LEVEL', '${data.level}'),
-      if (data.playTime != null) ('TIME', _formatDuration(data.playTime!)),
-    ]) {
-      final lp = _buildParagraph(
-        label,
-        fontSize: 12 * s,
-        color: _cyan,
-        letterSpacing: 3 * s,
-        maxWidth: rw,
-      );
-      canvas.drawParagraph(lp, Offset(rx, ry));
-      ry += lp.height + 2 * s;
-      final vp = _buildParagraph(
-        value,
-        fontSize: 28 * s,
-        color: Colors.white,
-        fontWeight: FontWeight.w700,
-        maxWidth: rw,
-      );
-      canvas.drawParagraph(vp, Offset(rx, ry));
-      ry += vp.height + 14 * s;
-    }
-
-    ry += 10 * s;
-
-    // Challenge
-    final cp = _buildParagraph(
-      data.challengeMessage,
-      fontSize: 18 * s,
-      color: _magenta,
-      fontWeight: FontWeight.w600,
-      maxWidth: rw,
-    );
-    canvas.drawParagraph(cp, Offset(rx, ry));
-
     _drawFooterID(canvas, data, w, h, s);
   }
 
@@ -358,24 +314,58 @@ class ShareCardPainter {
   // COMPONENTS
   // ============================================================
 
-  /// Brand header — CYBERBLOCKX + neon divider
+  /// Brand header — CYBERBLOCKX with gradient matching home page + neon divider
   static double _drawBrandHeader(
     Canvas canvas,
     ShareCardData data,
     double w,
     double y,
     double s,
-    bool c,
   ) {
-    final p = _buildParagraph(
+    // First, build a plain paragraph to measure size
+    final measureP = _buildParagraph(
       'CYBERBLOCKX',
-      fontSize: (c ? 34 : 40) * s,
-      color: _cyan,
+      fontSize: 80 * s,
+      color: Colors.white,
       fontWeight: FontWeight.w900,
-      letterSpacing: 8 * s,
+      letterSpacing: 16 * s,
       maxWidth: w - 80 * s,
       textAlign: TextAlign.center,
     );
+    final textX = (w - measureP.width) / 2;
+
+    // Build gradient paragraph: CYBER(cyan→blue→purple) BLOCK(magenta→purple→blue) X(red)
+    final gradientShader = ui.Gradient.linear(
+      Offset(textX, 0),
+      Offset(textX + measureP.width, 0),
+      [
+        const Color(0xFF00FFFF), // cyan — start of CYBER
+        const Color(0xFF00AAFF), // blue — mid CYBER
+        const Color(0xFF8844FF), // purple — end CYBER
+        const Color(0xFFFF00FF), // magenta — start BLOCK
+        const Color(0xFFAA44FF), // purple — mid BLOCK
+        const Color(0xFF6666FF), // blue-purple — end BLOCK
+        const Color(0xFFFF4444), // red — X
+        const Color(0xFFFF4444), // red — X end
+      ],
+      [0.0, 0.22, 0.44, 0.46, 0.65, 0.88, 0.91, 1.0],
+    );
+
+    final gradientStyle = ui.TextStyle(
+      foreground: Paint()..shader = gradientShader,
+      fontSize: 80 * s,
+      fontWeight: FontWeight.w900,
+      letterSpacing: 16 * s,
+      fontFamily: 'monospace',
+    );
+    final builder = ui.ParagraphBuilder(
+      ui.ParagraphStyle(textAlign: TextAlign.center, maxLines: 1),
+    )
+      ..pushStyle(gradientStyle)
+      ..addText('CYBERBLOCKX');
+    final p = builder.build();
+    p.layout(ui.ParagraphConstraints(width: w - 80 * s));
+
     canvas.drawParagraph(p, Offset((w - p.width) / 2, y));
     y += p.height + 12 * s;
 
@@ -391,13 +381,12 @@ class ShareCardPainter {
     double w,
     double y,
     double s,
-    bool c,
   ) {
     // Username
     final name = data.username.isNotEmpty ? data.username : 'PLAYER';
     final np = _buildParagraph(
       name.toUpperCase(),
-      fontSize: (c ? 26 : 32) * s,
+      fontSize: 72 * s,
       color: Colors.white,
       fontWeight: FontWeight.w700,
       letterSpacing: 3 * s,
@@ -410,8 +399,8 @@ class ShareCardPainter {
     // Country
     if (data.hasCountryData) {
       final cp = _buildParagraph(
-        '${data.countryCode.toUpperCase()}  ${data.countryName}',
-        fontSize: (c ? 18 : 22) * s,
+        '// ${data.countryCode.toUpperCase()} \u2014 ${data.countryName.toUpperCase()}',
+        fontSize: 44 * s,
         color: const Color(0xFFB0B0B0),
         maxWidth: w,
         textAlign: TextAlign.center,
@@ -423,7 +412,7 @@ class ShareCardPainter {
     // Platform badge
     final bp = _buildParagraph(
       data.platformBadge,
-      fontSize: (c ? 13 : 16) * s,
+      fontSize: 32 * s,
       color: const Color(0xFF777777),
       letterSpacing: 3 * s,
       maxWidth: w,
@@ -442,16 +431,15 @@ class ShareCardPainter {
     double w,
     double y,
     double s,
-    bool c,
     double h,
   ) {
-    final scoreSize = (c ? 100 : 200) * s;
-    final labelSize = (c ? 16 : 24) * s;
-    final recordSize = (c ? 16 : 22) * s;
-    final margin = (c ? 40 : 55) * s;
+    final scoreSize = 200 * s;
+    final labelSize = 48 * s;
+    final recordSize = 44 * s;
+    final margin = 55 * s;
 
-    // Panel height: proportional to card for story, fixed for compact
-    final panelH = c ? 175 * s : h * 0.26;
+    // Panel height: proportional to card
+    final panelH = h * 0.22;
     final panelRect = Rect.fromLTWH(margin, y, w - margin * 2, panelH);
     final panelRRect =
         RRect.fromRectAndRadius(panelRect, Radius.circular(16 * s));
@@ -492,9 +480,9 @@ class ShareCardPainter {
     canvas.drawRRect(
       panelRRect,
       Paint()
-        ..color = const Color(0x1400FFFF)
+        ..color = const Color(0x1800FFFF)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 18 * s
+        ..strokeWidth = 22 * s
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 * s),
     );
     canvas.restore();
@@ -503,23 +491,21 @@ class ShareCardPainter {
     final glowCenter = Offset(w / 2, y + panelH * 0.38);
     canvas.drawCircle(
       glowCenter,
-      (c ? 70 : 140) * s,
+      140 * s,
       Paint()
         ..shader = ui.Gradient.radial(
           glowCenter,
-          (c ? 70 : 140) * s,
+          140 * s,
           [const Color(0x1200FFFF), const Color(0x00000000)],
           [0.0, 1.0],
         ),
     );
 
-    // Corner accents (story only)
-    if (!c) {
-      _drawPanelCorners(canvas, panelRect, s);
-    }
+    // Corner accents
+    _drawPanelCorners(canvas, panelRect, s);
 
     // Score number — MASSIVE
-    double sy = y + (c ? 20 : 40) * s;
+    double sy = y + 40 * s;
     final scoreStr = _formatNumber(data.score);
     final sp = _buildParagraph(
       scoreStr,
@@ -531,7 +517,7 @@ class ShareCardPainter {
       textAlign: TextAlign.center,
     );
     canvas.drawParagraph(sp, Offset((w - sp.width) / 2, sy));
-    sy += sp.height + (c ? 2 : 6) * s;
+    sy += sp.height + 6 * s;
 
     // "SCORE" label BELOW the number
     final lp = _buildParagraph(
@@ -547,7 +533,7 @@ class ShareCardPainter {
 
     // NEW RECORD badge
     if (data.isNewRecord) {
-      sy += (c ? 6 : 14) * s;
+      sy += 14 * s;
       final rp = _buildParagraph(
         '// NEW RECORD!',
         fontSize: recordSize,
@@ -602,32 +588,31 @@ class ShareCardPainter {
     double w,
     double y,
     double s,
-    bool c,
   ) {
-    final fontSize = (c ? 18 : 26) * s;
-    final lineGap = (c ? 8 : 16) * s;
-    final panelW = w - (c ? 100 : 120) * s;
+    final fontSize = 56 * s;
+    final lineGap = 32 * s;
+    final panelW = w - 120 * s;
     final panelX = (w - panelW) / 2;
 
-    // Build items
+    // Build items — HUD-style with // prefix
     final items = <(String, String)>[];
-    items.add(('GLOBAL RANK', '#${_formatNumber(data.rank)}'));
+    items.add(('// GLOBAL RANK', '#${_formatNumber(data.rank)}'));
     if (data.hasCountryData) {
       items.add((
-        '${data.countryCode.toUpperCase()} RANK',
-        '#${_formatNumber(data.countryRank!)} / ${_formatNumber(data.countryTotal)}',
+        '// ${data.countryCode.toUpperCase()} RANK',
+        '#${_formatNumber(data.countryRank!)}',
       ));
     }
     if (data.totalPlayers > 0) {
       final pct = data.topPercentage;
       final pctStr =
           pct < 1 ? pct.toStringAsFixed(1) : pct.toStringAsFixed(0);
-      items.add(('TOP', '$pctStr% WORLDWIDE'));
+      items.add(('// WORLD TOP', '$pctStr%'));
     }
 
     // Panel frame
     final itemH = fontSize + lineGap;
-    final panelH = items.length * itemH + (c ? 28 : 48) * s;
+    final panelH = items.length * itemH + 48 * s;
     final panelRect = Rect.fromLTWH(panelX, y, panelW, panelH);
     final panelRRect =
         RRect.fromRectAndRadius(panelRect, Radius.circular(8 * s));
@@ -645,7 +630,7 @@ class ShareCardPainter {
     );
 
     // Content rows
-    double iy = y + (c ? 14 : 24) * s;
+    double iy = y + 24 * s;
     final innerX = panelX + 20 * s;
     final innerW = panelW - 40 * s;
 
@@ -696,7 +681,6 @@ class ShareCardPainter {
     double w,
     double y,
     double s,
-    bool c,
   ) {
     final stats = <String>['LN ${data.lines}', 'LV ${data.level}'];
     if (data.playTime != null) {
@@ -706,9 +690,9 @@ class ShareCardPainter {
     final text = stats.join('  ·  ');
     final p = _buildParagraph(
       text,
-      fontSize: (c ? 14 : 17) * s,
+      fontSize: 40 * s,
       color: const Color(0xFF555555),
-      letterSpacing: 2 * s,
+      letterSpacing: 4 * s,
       maxWidth: w - 80 * s,
       textAlign: TextAlign.center,
     );
@@ -723,16 +707,15 @@ class ShareCardPainter {
     double w,
     double y,
     double s,
-    bool c,
   ) {
     // Top neon divider
     _drawNeonLine(canvas, 80 * s, y, w - 80 * s, y, s);
-    y += (c ? 22 : 40) * s;
+    y += 40 * s;
 
     // Challenge message
     final cp = _buildParagraph(
       data.challengeMessage,
-      fontSize: (c ? 20 : 30) * s,
+      fontSize: 68 * s,
       color: _magenta,
       fontWeight: FontWeight.w600,
       letterSpacing: 2 * s,
@@ -740,31 +723,31 @@ class ShareCardPainter {
       textAlign: TextAlign.center,
     );
     canvas.drawParagraph(cp, Offset((w - cp.width) / 2, y));
-    y += cp.height + (c ? 10 : 22) * s;
+    y += cp.height + 22 * s;
 
     // CTA
     final ctap = _buildParagraph(
       data.ctaMessage,
-      fontSize: (c ? 14 : 20) * s,
+      fontSize: 48 * s,
       color: const Color(0xFFB0B0B0),
       letterSpacing: 2 * s,
       maxWidth: w - 100 * s,
       textAlign: TextAlign.center,
     );
     canvas.drawParagraph(ctap, Offset((w - ctap.width) / 2, y));
-    y += ctap.height + (c ? 8 : 18) * s;
+    y += ctap.height + 18 * s;
 
     // URL
     final up = _buildParagraph(
       'cyberblockx.com',
-      fontSize: (c ? 13 : 17) * s,
+      fontSize: 34 * s,
       color: const Color(0x9900FFFF),
       letterSpacing: 3 * s,
       maxWidth: w,
       textAlign: TextAlign.center,
     );
     canvas.drawParagraph(up, Offset((w - up.width) / 2, y));
-    y += up.height + (c ? 15 : 30) * s;
+    y += up.height + 30 * s;
 
     // Bottom neon divider
     _drawNeonLine(canvas, 80 * s, y, w - 80 * s, y, s);
@@ -783,7 +766,7 @@ class ShareCardPainter {
   ) {
     final p = _buildParagraph(
       data.shareId,
-      fontSize: 14 * s,
+      fontSize: 28 * s,
       color: const Color(0xFF444444),
       letterSpacing: 3 * s,
       maxWidth: w,
@@ -808,16 +791,16 @@ class ShareCardPainter {
     if (zone < 40 * s) return;
 
     // 1. Faint HUD text readouts
-    final hudTexts = ['// DATA_VERIFIED', 'SYS.ACTIVE', 'LINK//READY'];
+    final hudTexts = ['// DATA_VERIFIED', 'SYS.ACTIVE', 'LINK//READY', '▸ SIGNAL_OK'];
     for (int i = 0; i < hudTexts.length; i++) {
       final ty = startY + zone * (0.15 + 0.30 * i);
       if (ty > endY - 15 * s) break;
       final tx = (i % 2 == 0) ? 80 * s : w - 260 * s;
       final p = _buildParagraph(
         hudTexts[i],
-        fontSize: 10 * s,
+        fontSize: 20 * s,
         color: Color(i % 2 == 0 ? 0x1500FFFF : 0x12FF00FF),
-        letterSpacing: 2 * s,
+        letterSpacing: 4 * s,
         maxWidth: 200 * s,
       );
       canvas.drawParagraph(p, Offset(tx, ty));
@@ -855,6 +838,28 @@ class ShareCardPainter {
         ],
         const Color(0x0E00FFFF),
       ),
+      // Additional L-piece
+      (
+        Offset(w * 0.55, startY + zone * 0.15),
+        [
+          [0, 0],
+          [0, 1],
+          [0, 2],
+          [1, 2],
+        ],
+        const Color(0x0AFF00FF),
+      ),
+      // Additional S-piece
+      (
+        Offset(w * 0.85, startY + zone * 0.60),
+        [
+          [1, 0],
+          [2, 0],
+          [0, 1],
+          [1, 1],
+        ],
+        const Color(0x0C00FFFF),
+      ),
     ];
 
     for (final (offset, blocks, color) in shapes) {
@@ -876,8 +881,29 @@ class ShareCardPainter {
       }
     }
 
+    // 2b. Small grid overlay patches (3×3 at 6% opacity)
+    final gridPaint = Paint()
+      ..color = const Color(0x0F00FFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5 * s;
+    final gridSize = 10 * s;
+    for (final (gx, gy) in [
+      (w * 0.15, startY + zone * 0.50),
+      (w * 0.75, startY + zone * 0.30),
+    ]) {
+      if (gy + gridSize * 3 > endY) continue;
+      for (int gi = 0; gi < 3; gi++) {
+        for (int gj = 0; gj < 3; gj++) {
+          canvas.drawRect(
+            Rect.fromLTWH(gx + gi * gridSize, gy + gj * gridSize, gridSize, gridSize),
+            gridPaint,
+          );
+        }
+      }
+    }
+
     // 3. Faint scan lines
-    for (final frac in [0.30, 0.60, 0.90]) {
+    for (final frac in [0.20, 0.40, 0.60, 0.80]) {
       final ly = startY + zone * frac;
       if (ly > endY - 5 * s) break;
       canvas.drawLine(
@@ -889,10 +915,11 @@ class ShareCardPainter {
       );
     }
 
-    // 4. Mini brackets
+    // 4. Mini brackets — HUD corner elements
     if (zone > 100 * s) {
       _drawMiniBracket(canvas, Offset(w * 0.48, startY + zone * 0.40), s);
       _drawMiniBracket(canvas, Offset(w * 0.20, startY + zone * 0.65), s);
+      _drawMiniBracket(canvas, Offset(w * 0.80, startY + zone * 0.50), s);
     }
   }
 
@@ -903,12 +930,11 @@ class ShareCardPainter {
     double h,
     double startY,
     double s,
-    bool c,
   ) {
     final footerY = h - 60 * s;
     if (startY + 40 * s > footerY) return;
 
-    final blockSize = (c ? 18 : 24) * s;
+    final blockSize = 24 * s;
     final midY = (startY + footerY) / 2;
 
     final shapes = [

@@ -99,11 +99,9 @@ class ShareCardData {
   }
 }
 
-/// Share card size presets
+/// Share card size presets — only Story (1080×1920) is supported.
 enum ShareCardSize {
-  story(1080, 1920, 'Story'),    // 9:16 vertical
-  social(1200, 1200, 'Social'),  // 1:1 square
-  twitter(1600, 900, 'Twitter'); // 16:9 horizontal
+  story(1080, 1920, 'Story'); // 9:16 vertical, optimized for mobile sharing
 
   final int width;
   final int height;

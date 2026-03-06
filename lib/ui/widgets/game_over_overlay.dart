@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../models/share_card_data.dart';
@@ -6,6 +7,7 @@ import '../../services/auth_service.dart';
 import '../../services/global_leaderboard_service.dart';
 import '../../services/leaderboard_service.dart';
 import '../../services/localization_service.dart';
+import '../../solana/wallet_service.dart';
 import '../screens/bind_account_screen.dart';
 import '../theme/cyber_theme.dart';
 import 'share_card_sheet.dart';
@@ -23,6 +25,7 @@ class GameOverOverlay extends StatefulWidget {
   final bool alreadySynced; // Whether the score was already synced from HighScoreOverlay
   final ScoreSubmitResponse? syncedResult; // Result from HighScoreOverlay sync
   final Map<String, dynamic>? integrity; // Anti-cheat integrity data from GameState
+  final Uint8List? gameScreenshot; // Game board screenshot for share card background
 
   const GameOverOverlay({
     super.key,
@@ -38,6 +41,7 @@ class GameOverOverlay extends StatefulWidget {
     this.alreadySynced = false,
     this.syncedResult,
     this.integrity,
+    this.gameScreenshot,
   });
 
   @override
@@ -298,13 +302,14 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                         icon: Icons.share,
                         color: CyberColors.pink,
                         onTap: () {
+                          final platform = WalletService.instance.isSeedVaultAvailable ? 'seeker' : 'android';
                           final cardData = ShareCardData.fromSubmitResponse(
                             response: _submitResult!,
                             level: widget.level,
-                            platform: 'android',
+                            platform: platform,
                             playTime: widget.playTime,
                           );
-                          ShareCardSheet.show(context, cardData);
+                          ShareCardSheet.show(context, cardData, gameScreenshot: widget.gameScreenshot);
                         },
                       ),
                     ],

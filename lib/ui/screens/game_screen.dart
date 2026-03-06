@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import '../../core/game_state.dart';
 import '../../game/cyber_blockx_game.dart';
@@ -40,6 +43,10 @@ class _GameScreenState extends State<GameScreen> {
   int _maxCombo = 0;
   DateTime? _gameStartTime;
 
+  // Game screenshot for share card background
+  final GlobalKey _gameBoundaryKey = GlobalKey();
+  Uint8List? _gameScreenshot;
+
   // High score dialog state
   bool _showHighScoreDialog = false;
   bool _highScoreSubmitted = false;
@@ -67,6 +74,7 @@ class _GameScreenState extends State<GameScreen> {
     _gameState.startGame();
     _maxCombo = 0;
     _gameStartTime = DateTime.now();
+    _gameScreenshot = null;
     _showHighScoreDialog = false;
     _highScoreSubmitted = false;
     _scoreSynced = false;
@@ -83,6 +91,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _gameState.removeListener(_onGameStateChanged);
     _focusNode.dispose();
+    _gameScreenshot = null; // Release screenshot memory
     super.dispose();
   }
 
@@ -92,10 +101,29 @@ class _GameScreenState extends State<GameScreen> {
       _maxCombo = _gameState.scoring.combo;
     }
 
-    // Handle game events
-    final events = _gameState.popEvents();
-    for (final event in events) {
-      _handleGameEvent(event);
+    // Handle game events (wrapped in try/catch for resilience —
+    // if any event handler throws, we still want capture + setState to run)
+    try {
+      final events = _gameState.popEvents();
+      for (final event in events) {
+        _handleGameEvent(event);
+      }
+    } catch (e) {
+      debugPrint('ShareCard: Event handler error: $e');
+    }
+
+    // Phase-based game over detection (outside event loop for reliability)
+    // This ensures capture + checkHighScore run even if an earlier event handler threw
+    if (_gameState.phase == GamePhase.gameOver && _gameScreenshot == null && !_highScoreSubmitted) {
+      debugPrint('ShareCard: Phase gameOver detected, triggering capture + high score check');
+      try {
+        _captureGameScreen();
+      } catch (e) {
+        debugPrint('ShareCard: Phase capture error: $e');
+      }
+      if (!_showHighScoreDialog && !_highScoreSubmitted) {
+        _checkHighScore();
+      }
     }
 
     // Pause/resume Flame engine based on game phase to free up GPU/CPU
@@ -112,6 +140,51 @@ class _GameScreenState extends State<GameScreen> {
       _game.pauseEngine();
     } else if (!shouldPause && _game.paused) {
       _game.resumeEngine();
+    }
+  }
+
+  /// Capture the game board as a screenshot for the share card background.
+  /// Uses OffsetLayer.toImageSync for synchronous capture that works reliably
+  /// even during notifyListeners() callbacks.
+  void _captureGameScreen() {
+    debugPrint('ShareCard: >>> _captureGameScreen() called');
+    try {
+      final boundary = _gameBoundaryKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) {
+        debugPrint('ShareCard: RepaintBoundary is null, cannot capture');
+        return;
+      }
+
+      // Use synchronous capture via OffsetLayer.toImageSync
+      // This avoids async timing issues with toImage() during notifyListeners
+      final layer = boundary.layer as OffsetLayer?;
+      if (layer == null) {
+        debugPrint('ShareCard: boundary.layer is null, cannot capture');
+        return;
+      }
+
+      debugPrint('ShareCard: Capturing synchronously, bounds=${boundary.paintBounds}');
+      final image = layer.toImageSync(boundary.paintBounds, pixelRatio: 2.0);
+      debugPrint('ShareCard: Sync capture OK: ${image.width}x${image.height}');
+
+      // Convert to PNG bytes asynchronously (just encoding, not rendering)
+      image.toByteData(format: ui.ImageByteFormat.png).then((byteData) {
+        image.dispose();
+        if (mounted && byteData != null) {
+          debugPrint('ShareCard: PNG ready, ${byteData.lengthInBytes} bytes');
+          setState(() {
+            _gameScreenshot = byteData.buffer.asUint8List();
+          });
+        } else {
+          debugPrint('ShareCard: toByteData failed - mounted=$mounted, byteData=${byteData != null}');
+        }
+      }).catchError((e) {
+        image.dispose(); // Ensure image is disposed even on error
+        debugPrint('ShareCard: toByteData error: $e');
+      });
+    } catch (e) {
+      debugPrint('ShareCard: Capture error: $e');
     }
   }
 
@@ -208,7 +281,8 @@ class _GameScreenState extends State<GameScreen> {
         break;
       case GameEvent.gameOver:
         _audio.onGameOver();
-        _checkHighScore();
+        // Note: _captureGameScreen() and _checkHighScore() are now called
+        // from the phase-based detection in _onGameStateChanged() for reliability
         break;
       case GameEvent.combo:
         _audio.playSound(GameSound.combo);
@@ -223,6 +297,10 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Version marker: appears every time widget builds during game over
+    if (_gameState.phase == GamePhase.gameOver) {
+      debugPrint('ShareCard: [v5] BUILD phase=gameOver, screenshot=${_gameScreenshot != null ? "HAS_DATA(${_gameScreenshot!.length}b)" : "NULL"}, highScoreDialog=$_showHighScoreDialog');
+    }
     return Scaffold(
       backgroundColor: CyberColors.background,
       body: KeyboardListener(
@@ -246,7 +324,10 @@ class _GameScreenState extends State<GameScreen> {
 
                         // Game board in center - fills available space
                         Expanded(
-                          child: GameWidget(game: _game),
+                          child: RepaintBoundary(
+                            key: _gameBoundaryKey,
+                            child: GameWidget(game: _game),
+                          ),
                         ),
 
                         // Right HUD - Hold + Next
@@ -333,6 +414,7 @@ class _GameScreenState extends State<GameScreen> {
                   lines: _gameState.scoring.totalLines,
                   rank: _scoreRank,
                   playTime: _playTime,
+                  gameScreenshot: _gameScreenshot,
                   onSkip: () {
                     _submitScore('Player');
                   },
@@ -393,6 +475,7 @@ class _GameScreenState extends State<GameScreen> {
                   alreadySynced: _scoreSynced,
                   syncedResult: _syncedSubmitResult,
                   integrity: _gameState.getIntegrityData(),
+                  gameScreenshot: _gameScreenshot,
                   onRestart: () {
                     _startNewGame();
                     _audio.onGameStart();
