@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../services/google_sign_in_service.dart';
 import '../../services/localization_service.dart';
 import '../../solana/wallet_service.dart';
+import '../../utils/country_flags.dart';
 import '../theme/cyber_theme.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -112,9 +113,18 @@ class _AccountScreenState extends State<AccountScreen> {
       icon: Icons.person,
       children: [
         if (auth.displayName != null && auth.displayName!.isNotEmpty)
-          _infoRow('Name', auth.displayName!),
+          _infoRow('Name', auth.countryCode != null
+              ? '${auth.displayName!} ${countryCodeToEmoji(auth.countryCode!)}'
+              : auth.displayName!),
         if (auth.userId != null)
-          _infoRow('User ID', auth.displayUserId ?? 'CBX-${auth.userId.toString().padLeft(6, '0')}'),
+          _infoRow('User ID', () {
+            final id = auth.displayUserId ?? 'CBX-${auth.userId.toString().padLeft(6, '0')}';
+            // If no Name row, append flag to User ID instead
+            if ((auth.displayName == null || auth.displayName!.isEmpty) && auth.countryCode != null) {
+              return '$id ${countryCodeToEmoji(auth.countryCode!)}';
+            }
+            return id;
+          }()),
         if (auth.authProvider != null)
           _infoRow('Login', _providerDisplayName(auth.authProvider!.rawValue)),
         if (auth.walletAddress != null && auth.walletAddress!.isNotEmpty)

@@ -55,6 +55,7 @@ class AuthService extends ChangeNotifier {
   // Keys for auth provider info
   static const String _keyAuthProvider = 'cyberblockx_auth_provider';
   static const String _keyDisplayName = 'cyberblockx_display_name';
+  static const String _keyCountryCode = 'cyberblockx_country_code';
 
   // State
   AuthStatus _status = AuthStatus.unknown;
@@ -68,6 +69,7 @@ class AuthService extends ChangeNotifier {
   bool _isNewUser = false;
   AuthProvider? _authProvider;
   String? _displayName;
+  String? _countryCode;
   List<AuthProviderInfo> _linkedProviders = [];
 
   // Pending nonce data for binding
@@ -86,6 +88,7 @@ class AuthService extends ChangeNotifier {
   bool get isNewUser => _isNewUser;
   AuthProvider? get authProvider => _authProvider;
   String? get displayName => _displayName;
+  String? get countryCode => _countryCode;
   List<AuthProviderInfo> get linkedProviders => _linkedProviders;
 
   String get shortWalletAddress {
@@ -116,6 +119,7 @@ class AuthService extends ChangeNotifier {
       final providerStr = await _storage.read(key: _keyAuthProvider);
       _authProvider = AuthProvider.fromString(providerStr);
       _displayName = await _storage.read(key: _keyDisplayName);
+      _countryCode = await _storage.read(key: _keyCountryCode);
 
       // Determine status based on stored data
       // Bound if we have an access token AND either a wallet address or an auth provider
@@ -189,6 +193,11 @@ class AuthService extends ChangeNotifier {
       _userId = tokenData.userId;
       _displayUserId = tokenData.displayUserId;
       _isNewUser = tokenData.isNewUser ?? false;
+      _countryCode = tokenData.countryCode;
+      // displayName may be null for wallet login (backward compatible)
+      if (tokenData.displayName != null) {
+        _displayName = tokenData.displayName;
+      }
 
       // Save to secure storage
       await _saveTokens();
@@ -239,6 +248,8 @@ class AuthService extends ChangeNotifier {
       _isNewUser = tokenData.isNewUser ?? false;
       _authProvider = AuthProvider.google;
       _walletAddress = tokenData.walletAddress;
+      _countryCode = tokenData.countryCode;
+      _displayName = tokenData.displayName ?? tokenData.email;
 
       await _saveTokens();
 
@@ -279,6 +290,7 @@ class AuthService extends ChangeNotifier {
     _pendingMessage = null;
     _authProvider = null;
     _displayName = null;
+    _countryCode = null;
     _linkedProviders = [];
     _status = AuthStatus.unbound;
     _errorMessage = null;
@@ -372,6 +384,9 @@ class AuthService extends ChangeNotifier {
       if (_displayName != null) {
         await _storage.write(key: _keyDisplayName, value: _displayName);
       }
+      if (_countryCode != null) {
+        await _storage.write(key: _keyCountryCode, value: _countryCode);
+      }
     } catch (e) {
       debugPrint('Save tokens error: $e');
     }
@@ -387,6 +402,7 @@ class AuthService extends ChangeNotifier {
       await _storage.delete(key: _keyDisplayUserId);
       await _storage.delete(key: _keyAuthProvider);
       await _storage.delete(key: _keyDisplayName);
+      await _storage.delete(key: _keyCountryCode);
     } catch (e) {
       debugPrint('Clear tokens error: $e');
     }

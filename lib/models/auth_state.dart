@@ -33,6 +33,9 @@ class TokenResponse {
   final String? displayUserId;
   final String? walletAddress;
   final bool? isNewUser;
+  final String? countryCode;
+  final String? displayName;
+  final String? email;
 
   TokenResponse({
     required this.accessToken,
@@ -44,6 +47,9 @@ class TokenResponse {
     this.displayUserId,
     this.walletAddress,
     this.isNewUser,
+    this.countryCode,
+    this.displayName,
+    this.email,
   });
 
   factory TokenResponse.fromJson(Map<String, dynamic> json) {
@@ -77,6 +83,9 @@ class TokenResponse {
       displayUserId: json['display_user_id'] as String?,
       walletAddress: json['wallet_address'] as String?,
       isNewUser: json['is_new_user'] as bool?,
+      countryCode: json['country_code'] as String?,
+      displayName: json['display_name'] as String?,
+      email: json['email'] as String?,
     );
   }
 }
