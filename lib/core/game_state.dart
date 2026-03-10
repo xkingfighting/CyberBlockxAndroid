@@ -18,6 +18,59 @@ enum GameEvent {
   perfectClear,
 }
 
+/// Abstract piece bag interface for dependency injection.
+/// Allows both default random and seeded deterministic bags.
+abstract class PieceBag {
+  TetrominoType next();
+  List<TetrominoType> get preview;
+  TetrominoType peek();
+  void reset();
+}
+
+/// Default random bag using Dart's Random (original behavior).
+class DefaultPieceBag implements PieceBag {
+  final Random _random;
+  List<TetrominoType> _bag = [];
+  List<TetrominoType> _previewQueue = [];
+  final int previewCount;
+
+  DefaultPieceBag({Random? random, this.previewCount = 5})
+      : _random = random ?? Random();
+
+  @override
+  void reset() {
+    _bag.clear();
+    _previewQueue.clear();
+    while (_previewQueue.length < previewCount) {
+      _previewQueue.add(_drawFromBag());
+    }
+  }
+
+  @override
+  TetrominoType next() {
+    final piece = _previewQueue.removeAt(0);
+    _previewQueue.add(_drawFromBag());
+    return piece;
+  }
+
+  @override
+  List<TetrominoType> get preview => List.unmodifiable(_previewQueue);
+
+  @override
+  TetrominoType peek() {
+    if (_previewQueue.isEmpty) return TetrominoType.I;
+    return _previewQueue.first;
+  }
+
+  TetrominoType _drawFromBag() {
+    if (_bag.isEmpty) {
+      _bag = List.from(TetrominoType.values);
+      _bag.shuffle(_random);
+    }
+    return _bag.removeLast();
+  }
+}
+
 /// Scoring system
 class Scoring {
   int score = 0;
@@ -127,11 +180,12 @@ class GameState extends ChangeNotifier {
   final Scoring scoring = Scoring();
   final Random _random = Random();
 
+  /// Piece bag - injectable for challenge mode (seeded deterministic bag).
+  PieceBag _pieceBag;
+
   GamePhase _phase = GamePhase.menu;
   Tetromino? _currentPiece;
   Tetromino? _holdPiece;
-  List<TetrominoType> _previewQueue = [];
-  List<TetrominoType> _bag = [];
 
   bool _canHold = true;
   double _dropTimer = 0;
@@ -142,6 +196,16 @@ class GameState extends ChangeNotifier {
   // Lock delay settings
   static const double lockDelay = 0.5;
   static const int maxLockMoves = 15;
+
+  /// Create a GameState with optional custom piece bag.
+  /// Default uses random bag (original single-player behavior).
+  GameState({PieceBag? pieceBag}) : _pieceBag = pieceBag ?? DefaultPieceBag();
+
+  /// Inject a custom piece bag (e.g., SeededRandomBag for challenge mode).
+  /// Must be called before startGame().
+  void setPieceBag(PieceBag bag) {
+    _pieceBag = bag;
+  }
 
   // Anti-cheat tracking
   int _piecesPlaced = 0;
@@ -162,7 +226,7 @@ class GameState extends ChangeNotifier {
   GamePhase get phase => _phase;
   Tetromino? get currentPiece => _currentPiece;
   TetrominoType? get holdPiece => _holdPiece?.type;
-  List<TetrominoType> get previewQueue => List.unmodifiable(_previewQueue);
+  List<TetrominoType> get previewQueue => _pieceBag.preview;
   bool get canHold => _canHold;
   Tetromino? get lastLockedPiece => _lastLockedPiece;
   List<int> get lastClearedRows => _lastClearedRows;
@@ -187,21 +251,16 @@ class GameState extends ChangeNotifier {
     scoring.reset();
     _holdPiece = null;
     _canHold = true;
-    _bag.clear();
-    _previewQueue.clear();
     _eventQueue.clear();
+
+    // Reset piece bag
+    _pieceBag.reset();
 
     // Reset anti-cheat tracking
     _piecesPlaced = 0;
     _totalGameTime = 0;
     _gameStartTimestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     _gameToken = _generateGameToken();
-
-    // Fill preview queue
-    _refillBag();
-    for (int i = 0; i < 5; i++) {
-      _previewQueue.add(_getNextFromBag());
-    }
 
     // Spawn first piece
     _spawnPiece();
@@ -479,10 +538,7 @@ class GameState extends ChangeNotifier {
     if (type != null) {
       pieceType = type;
     } else {
-      // Take the first piece from preview queue (what the player sees as "next")
-      pieceType = _previewQueue.removeAt(0);
-      // Add a new piece from bag to the end of the preview queue
-      _previewQueue.add(_getNextFromBag());
+      pieceType = _pieceBag.next();
     }
 
     _currentPiece = Tetromino(
@@ -500,18 +556,6 @@ class GameState extends ChangeNotifier {
     }
 
     notifyListeners();
-  }
-
-  TetrominoType _getNextFromBag() {
-    if (_bag.isEmpty) {
-      _refillBag();
-    }
-    return _bag.removeLast();
-  }
-
-  void _refillBag() {
-    _bag = List.from(TetrominoType.values);
-    _bag.shuffle(_random);
   }
 
   String _generateGameToken() {

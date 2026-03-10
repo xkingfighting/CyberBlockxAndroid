@@ -14,6 +14,7 @@ class MenuScreen extends StatefulWidget {
   final VoidCallback? onBind;
   final VoidCallback? onBadges;
   final VoidCallback? onAccount;
+  final VoidCallback? onChallenge;
 
   const MenuScreen({
     super.key,
@@ -24,6 +25,7 @@ class MenuScreen extends StatefulWidget {
     this.onBind,
     this.onBadges,
     this.onAccount,
+    this.onChallenge,
   });
 
   @override
@@ -71,61 +73,58 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onStartGame,
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: MenuBackground(
-          child: SafeArea(
-            child: Stack(
-              children: [
-                // Main content
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      Expanded(
-                        child: Center(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const SizedBox(height: 40),
-                                _buildTitle(),
-                                const SizedBox(height: 20),
-                                Text(
-                                  _version.isNotEmpty ? 'v$_version' : '',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontFamily: 'monospace',
-                                    color: Colors.grey.withValues(alpha: 0.5),
-                                  ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: MenuBackground(
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // Main content
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(height: 40),
+                              _buildTitle(),
+                              const SizedBox(height: 20),
+                              Text(
+                                _version.isNotEmpty ? 'v$_version' : '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'monospace',
+                                  color: Colors.grey.withValues(alpha: 0.5),
                                 ),
-                                const SizedBox(height: 200),
-                                AnimatedOpacity(
-                                  opacity: _showPrompt ? 1.0 : 0.0,
-                                  duration: const Duration(milliseconds: 800),
-                                  curve: Curves.easeInOut,
-                                  child: _buildMenuSection(),
-                                ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 120),
+                              AnimatedOpacity(
+                                opacity: _showPrompt ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 800),
+                                curve: Curves.easeInOut,
+                                child: _buildMenuSection(),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      _buildFooter(),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+                    ),
+                    _buildFooter(),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-                // Avatar button - top right
-                Positioned(
-                  top: 8,
-                  right: 16,
-                  child: _buildAvatarButton(),
-                ),
-              ],
-            ),
+              ),
+              // Avatar button - top right
+              Positioned(
+                top: 8,
+                right: 16,
+                child: _buildAvatarButton(),
+              ),
+            ],
           ),
         ),
       ),
@@ -274,76 +273,125 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ── Button size constants ──────────────────────────────────
+  // Primary  : full-width CTA (START GAME)
+  // Secondary: half-width pair  (CHALLENGE, BADGES)
+  // Functional: compact trio    (LEADERBOARD, SETTINGS, CONTROLS)
+  static const double _primaryH   = 52;
+  static const double _secondaryH = 44;
+  static const double _funcH      = 40;
+  static const double _maxW       = 300.0; // max content width for centering
+  static const double _rowGap     = 10.0;  // vertical gap between rows
+  static const double _colGap     = 10.0;  // horizontal gap between buttons
+
   Widget _buildMenuSection() {
     return ListenableBuilder(
       listenable: AuthService.instance,
       builder: (context, _) {
-        return Column(
-          children: [
-            // START GAME text
-            Text(
-              L.startGame.tr,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-                color: Colors.white.withValues(alpha: 0.9),
-                letterSpacing: 3,
+        return ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _maxW),
+          child: Column(
+            children: [
+              // ── Row 1: PRIMARY — START GAME (full width) ──
+              _StyledButton(
+                title: L.startGame.tr,
+                icon: Icons.play_arrow,
+                color: CyberColors.green,
+                height: _primaryH,
+                fontSize: 15,
+                iconSize: 20,
+                borderWidth: 1.5,
+                expanded: true,
+                onTap: widget.onStartGame,
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: _rowGap),
 
-            // Menu buttons - Row 1: LEADERBOARD, SETTINGS, CONTROLS
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              // ── Row 2: SECONDARY — CHALLENGE + BADGES (equal half-width) ──
+              Row(
                 children: [
-                  _MenuButton(
-                    title: L.leaderboard.tr,
-                    icon: Icons.emoji_events,
-                    color: CyberColors.yellow,
-                    onTap: widget.onLeaderboard,
+                  Expanded(
+                    child: _StyledButton(
+                      title: L.challenge.tr,
+                      icon: Icons.sports_kabaddi,
+                      color: CyberColors.pink,
+                      height: _secondaryH,
+                      fontSize: 12,
+                      iconSize: 16,
+                      borderWidth: 1.0,
+                      expanded: true,
+                      onTap: widget.onChallenge ?? () {},
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  _MenuButton(
-                    title: L.settings.tr,
-                    icon: Icons.settings,
-                    color: CyberColors.cyan,
-                    onTap: widget.onSettings,
-                  ),
-                  const SizedBox(width: 10),
-                  _MenuButton(
-                    title: L.controls.tr,
-                    icon: Icons.gamepad,
-                    color: CyberColors.cyan,
-                    onTap: widget.onControls ?? () {},
+                  const SizedBox(width: _colGap),
+                  Expanded(
+                    child: _StyledButton(
+                      title: L.badges.tr,
+                      icon: Icons.military_tech,
+                      color: CyberColors.orange,
+                      height: _secondaryH,
+                      fontSize: 12,
+                      iconSize: 16,
+                      borderWidth: 1.0,
+                      expanded: true,
+                      onTap: widget.onBadges ?? () {},
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: _rowGap),
 
-            // Menu buttons - Row 2: BADGES
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              // ── Row 3: FUNCTIONAL — LEADERBOARD + SETTINGS + CONTROLS (equal thirds) ──
+              Row(
                 children: [
-                  _MenuButton(
-                    title: L.badges.tr,
-                    icon: Icons.military_tech,
-                    color: CyberColors.orange,
-                    onTap: widget.onBadges ?? () {},
+                  Expanded(
+                    child: _StyledButton(
+                      title: L.leaderboard.tr,
+                      icon: Icons.emoji_events,
+                      color: CyberColors.yellow,
+                      height: _funcH,
+                      fontSize: 9,
+                      iconSize: 14,
+                      borderWidth: 1.0,
+                      expanded: true,
+                      onTap: widget.onLeaderboard,
+                    ),
+                  ),
+                  const SizedBox(width: _colGap),
+                  Expanded(
+                    child: _StyledButton(
+                      title: L.settings.tr,
+                      icon: Icons.settings,
+                      color: CyberColors.cyan,
+                      height: _funcH,
+                      fontSize: 9,
+                      iconSize: 14,
+                      borderWidth: 1.0,
+                      expanded: true,
+                      onTap: widget.onSettings,
+                    ),
+                  ),
+                  const SizedBox(width: _colGap),
+                  Expanded(
+                    child: _StyledButton(
+                      title: L.controls.tr,
+                      icon: Icons.gamepad,
+                      color: CyberColors.cyan,
+                      height: _funcH,
+                      fontSize: 9,
+                      iconSize: 14,
+                      borderWidth: 1.0,
+                      expanded: true,
+                      onTap: widget.onControls ?? () {},
+                    ),
                   ),
                 ],
               ),
-            ),
 
-            // Legal consent notice
-            const SizedBox(height: 20),
-            const LegalConsentInline(),
-          ],
+              // Legal consent notice
+              const SizedBox(height: 20),
+              const LegalConsentInline(),
+            ],
+          ),
         );
       },
     );
@@ -386,29 +434,45 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 }
 
-/// Menu button matching iOS style - transparent background, border only
-class _MenuButton extends StatefulWidget {
+/// Unified menu button with configurable size hierarchy.
+///
+/// Size classes driven by the caller:
+///   Primary   — height 52, fontSize 15, iconSize 20, borderWidth 1.5
+///   Secondary — height 44, fontSize 12, iconSize 16, borderWidth 1.0
+///   Functional— height 40, fontSize  9, iconSize 14, borderWidth 1.0
+class _StyledButton extends StatefulWidget {
   final String title;
   final IconData icon;
   final Color color;
+  final double height;
+  final double fontSize;
+  final double iconSize;
+  final double borderWidth;
+  final bool expanded; // true = fill available width
   final VoidCallback onTap;
 
-  const _MenuButton({
+  const _StyledButton({
     required this.title,
     required this.icon,
     required this.color,
+    required this.height,
+    required this.fontSize,
+    required this.iconSize,
+    required this.borderWidth,
+    this.expanded = false,
     required this.onTap,
   });
 
   @override
-  State<_MenuButton> createState() => _MenuButtonState();
+  State<_StyledButton> createState() => _StyledButtonState();
 }
 
-class _MenuButtonState extends State<_MenuButton> {
+class _StyledButtonState extends State<_StyledButton> {
   bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
+    final color = widget.color;
     return GestureDetector(
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) {
@@ -418,39 +482,40 @@ class _MenuButtonState extends State<_MenuButton> {
       onTapCancel: () => setState(() => _isPressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        height: widget.height,
         decoration: BoxDecoration(
-          color: _isPressed ? widget.color.withValues(alpha: 0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: _isPressed ? color.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: _isPressed ? widget.color : widget.color.withValues(alpha: 0.5),
-            width: 1.5,
+            color: _isPressed ? color : color.withValues(alpha: 0.5),
+            width: widget.borderWidth,
           ),
           boxShadow: _isPressed
-              ? [
-                  BoxShadow(
-                    color: widget.color.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                  ),
-                ]
+              ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 10)]
               : null,
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: widget.expanded ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               widget.icon,
-              color: _isPressed ? Colors.white : widget.color,
-              size: 16,
+              color: _isPressed ? Colors.white : color,
+              size: widget.iconSize,
             ),
-            const SizedBox(width: 8),
-            Text(
-              widget.title,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'monospace',
-                color: _isPressed ? Colors.white : widget.color,
+            SizedBox(width: widget.iconSize > 16 ? 8 : 5),
+            Flexible(
+              child: Text(
+                widget.title,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: widget.fontSize,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'monospace',
+                  color: _isPressed ? Colors.white : color,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],

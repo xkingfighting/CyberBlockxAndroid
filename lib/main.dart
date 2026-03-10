@@ -11,6 +11,9 @@ import 'ui/screens/controls_screen.dart';
 import 'ui/screens/bind_account_screen.dart';
 import 'ui/screens/badges_screen.dart';
 import 'ui/screens/account_screen.dart';
+import 'challenge/ui/screens/challenge_lobby_screen.dart';
+import 'challenge/ui/screens/challenge_game_screen.dart';
+import 'challenge/models/match_config.dart';
 import 'services/audio_manager.dart';
 import 'services/leaderboard_service.dart';
 import 'services/localization_service.dart';
@@ -144,6 +147,8 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
   bool _showBind = false;
   bool _showBadges = false;
   bool _showAccount = false;
+  bool _showChallengeLobby = false;
+  MatchConfig? _challengeConfig; // non-null = in challenge game
 
   @override
   void initState() {
@@ -167,12 +172,46 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
     return result ?? false;
   }
 
+  /// Gate challenge mode behind login.
+  void _openChallengeIfLoggedIn() {
+    if (AuthService.instance.isBound) {
+      setState(() => _showChallengeLobby = true);
+    } else {
+      final loc = LocalizationService.instance;
+      showDialog(
+        context: context,
+        barrierColor: Colors.black87,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: CyberColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: CyberColors.cyan.withValues(alpha: 0.3)),
+          ),
+          title: Text(
+            loc.tr(L.loginRequired),
+            style: CyberTextStyles.subtitle.copyWith(color: CyberColors.cyan),
+          ),
+          content: Text(
+            loc.tr(L.loginToChallenge),
+            style: CyberTextStyles.body.copyWith(color: CyberColors.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('OK', style: CyberTextStyles.button.copyWith(color: CyberColors.cyan)),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   /// Handle back navigation
   Future<bool> _onPopInvoked(bool didPop) async {
     if (didPop) return true;
 
     // If on a sub-screen, go back to menu
-    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges || _showAccount) {
+    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges || _showAccount || _showChallengeLobby) {
       setState(() {
         _showSettings = false;
         _showLeaderboard = false;
@@ -180,7 +219,14 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         _showBind = false;
         _showBadges = false;
         _showAccount = false;
+        _showChallengeLobby = false;
       });
+      return false;
+    }
+
+    // If in challenge game, go back to menu
+    if (_challengeConfig != null) {
+      setState(() => _challengeConfig = null);
       return false;
     }
 
@@ -243,7 +289,15 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
   Widget build(BuildContext context) {
     Widget content;
 
-    if (_isPlaying) {
+    if (_challengeConfig != null) {
+      content = ChallengeGameScreen(
+        config: _challengeConfig!,
+        onReturnToMenu: () {
+          AudioManager.instance.onReturnToMenu();
+          setState(() => _challengeConfig = null);
+        },
+      );
+    } else if (_isPlaying) {
       content = GameScreen(
         onReturnToMenu: () {
           AudioManager.instance.onReturnToMenu();
@@ -256,6 +310,14 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
             _showLeaderboard = true;
           });
         },
+      );
+    } else if (_showChallengeLobby) {
+      content = ChallengeLobbyScreen(
+        onReturnToMenu: () => setState(() => _showChallengeLobby = false),
+        onMatchFound: (config) => setState(() {
+          _showChallengeLobby = false;
+          _challengeConfig = config;
+        }),
       );
     } else if (_showSettings) {
       content = SettingsScreen(
@@ -296,6 +358,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         onBind: () => setState(() => _showBind = true),
         onBadges: () => setState(() => _showBadges = true),
         onAccount: () => setState(() => _showAccount = true),
+        onChallenge: () => _openChallengeIfLoggedIn(),
       );
     }
 

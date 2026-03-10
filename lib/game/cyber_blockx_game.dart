@@ -6,6 +6,8 @@ import 'package:flutter/material.dart' hide Draggable;
 import 'package:flutter/services.dart';
 import '../core/game_state.dart';
 import '../core/tetromino.dart';
+import '../challenge/core/challenge_orchestrator.dart';
+import '../challenge/models/opponent_projection.dart';
 import '../services/visual_settings.dart';
 
 /// Main game component using Flame engine
@@ -46,6 +48,18 @@ class CyberBlockxGame extends FlameGame {
   final Paint _ghostGlowPaint = Paint();
   final Paint _ghostOutlinePaint = Paint()..strokeWidth = 1.5..style = PaintingStyle.stroke;
 
+  // Opponent ghost board paint (challenge mode)
+  final Paint _opponentGhostPaint = Paint()..style = PaintingStyle.fill;
+
+  /// Opponent ghost projection (set by ChallengeOrchestrator, null in solo mode).
+  OpponentProjection? opponentProjection;
+
+  /// Optional challenge orchestrator. When set, the orchestrator drives the
+  /// game-state update loop (countdown → playing → result) instead of calling
+  /// [gameState.update] directly.  This prevents double-updating the player
+  /// state and ensures the countdown / bot / match-end logic runs each frame.
+  ChallengeOrchestrator? challengeOrchestrator;
+
   // Pre-allocated paints for grid/board/frame/wave/effects
   final Paint _gridPaint = Paint()
     ..color = const Color(0x4D1A334D)
@@ -54,6 +68,7 @@ class CyberBlockxGame extends FlameGame {
   final Paint _bgPaint = Paint()
     ..color = const Color(0xE6020308)
     ..style = PaintingStyle.fill;
+  final Paint _frameHaloPaint = Paint()..strokeWidth = 1..style = PaintingStyle.stroke;
   final Paint _frameGlow1Paint = Paint()..strokeWidth = 2..style = PaintingStyle.stroke;
   final Paint _frameGlow2Paint = Paint()..strokeWidth = 2..style = PaintingStyle.stroke;
   final Paint _frameBorderPaint = Paint()..strokeWidth = 1.5..style = PaintingStyle.stroke;
@@ -174,6 +189,11 @@ class CyberBlockxGame extends FlameGame {
     // Draw board frame glow and border
     _drawBoardFrameGlow(canvas);
 
+    // Draw opponent ghost board (challenge mode only, behind locked blocks)
+    if (opponentProjection != null) {
+      _renderOpponentGhost(canvas);
+    }
+
     // Draw locked blocks
     _drawLockedBlocks(canvas);
 
@@ -234,6 +254,14 @@ class CyberBlockxGame extends FlameGame {
     );
     final outerRRect = RRect.fromRectAndRadius(outerRect, const Radius.circular(7));
 
+    // Outermost ambient halo (very subtle atmosphere glow)
+    final haloRect = outerRect.inflate(6);
+    final haloRRect = RRect.fromRectAndRadius(haloRect, const Radius.circular(10));
+    _frameHaloPaint
+      ..color = const Color(0xFF00CCFF).withValues(alpha: 0.05 * glowIntensity)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 15 * glowIntensity);
+    canvas.drawRRect(haloRRect, _frameHaloPaint);
+
     _frameGlow1Paint
       ..color = const Color(0xFF00CCFF).withValues(alpha: 0.35 * glowIntensity)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 10 * glowIntensity);
@@ -246,6 +274,52 @@ class CyberBlockxGame extends FlameGame {
 
     _frameBorderPaint.color = Color.fromRGBO(0, 204, 255, 0.8 * glowIntensity.clamp(0.3, 1.0));
     canvas.drawRRect(outerRRect, _frameBorderPaint);
+  }
+
+  /// Render opponent ghost board as a low-opacity overlay behind player blocks.
+  void _renderOpponentGhost(Canvas canvas) {
+    final proj = opponentProjection;
+    if (proj == null) return;
+
+    final grid = proj.boardGrid;
+    final opacity = proj.opacity; // typically 0.12
+
+    // Dreamy blue-purple ghost palette — fantasy glow feel
+    const ghostBase = Color(0xFF6B4FD6); // vivid blue-violet
+    const ghostHighlight = Color(0xFFA87FFF); // bright lavender on clear
+    const ghostBorder = Color(0xFF9370FF); // lighter edge for contrast
+
+    _opponentGhostPaint.color = ghostBase.withValues(alpha: opacity);
+
+    for (int row = 0; row < grid.length && row < gameState.board.height; row++) {
+      for (int col = 0; col < grid[row].length && col < gameState.board.width; col++) {
+        if (!grid[row][col]) continue;
+
+        final screenX = boardOrigin.x + col * blockSize;
+        final screenY = boardOrigin.y + row * blockSize;
+
+        final blockRect = Rect.fromLTWH(screenX + 1, screenY + 1, blockSize - 2, blockSize - 2);
+        final blockRRect = RRect.fromRectAndRadius(blockRect, const Radius.circular(2));
+
+        // Check if this row was recently cleared (highlight effect)
+        final isRecentClear = proj.recentClearRows.contains(row) && proj.recentClearDecay > 0;
+        if (isRecentClear) {
+          _opponentGhostPaint.color = ghostHighlight.withValues(alpha: opacity + 0.15 * proj.recentClearDecay);
+        } else {
+          _opponentGhostPaint.color = ghostBase.withValues(alpha: opacity);
+        }
+
+        // Fill
+        canvas.drawRRect(blockRRect, _opponentGhostPaint);
+
+        // Bright edge for contrast on dark screens
+        _opponentGhostPaint.color = ghostBorder.withValues(alpha: opacity * 1.5);
+        _opponentGhostPaint.style = PaintingStyle.stroke;
+        _opponentGhostPaint.strokeWidth = 1.0;
+        canvas.drawRRect(blockRRect, _opponentGhostPaint);
+        _opponentGhostPaint.style = PaintingStyle.fill;
+      }
+    }
   }
 
   void _drawLockedBlocks(Canvas canvas) {
@@ -426,7 +500,15 @@ class CyberBlockxGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
-    gameState.update(dt);
+
+    // In challenge mode the orchestrator owns the update loop (countdown,
+    // player state, bot, projection, match-end).  In solo mode we update
+    // the game state directly as before.
+    if (challengeOrchestrator != null) {
+      challengeOrchestrator!.update(dt);
+    } else {
+      gameState.update(dt);
+    }
 
     // Update background animation
     _background.update(dt);
