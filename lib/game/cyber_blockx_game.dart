@@ -65,6 +65,10 @@ class CyberBlockxGame extends FlameGame {
   /// instead of live gameplay. Mutually exclusive with challengeOrchestrator.
   ReplayOrchestrator? replayOrchestrator;
 
+  /// Callback for player game events (audio, etc.) — set by game screen.
+  /// Called per event from the Flame game loop, NOT from widget notifyListeners.
+  void Function(GameEvent event)? onPlayerGameEvent;
+
   // Pre-allocated paints for grid/board/frame/wave/effects
   final Paint _gridPaint = Paint()
     ..color = const Color(0x4D1A334D)
@@ -143,6 +147,32 @@ class CyberBlockxGame extends FlameGame {
     _shakeIntensity = intensity * glitchIntensity;
     _shakeDuration = duration;
     _shakeTime = 0;
+  }
+
+  /// Process player events from the game loop (visual effects + audio callback).
+  /// Called per frame from update(), NOT from ChangeNotifier, to avoid widget rebuilds.
+  void _processPlayerEvents() {
+    final orch = challengeOrchestrator;
+    if (orch == null) return;
+
+    final events = orch.playerState.popEvents();
+    for (final event in events) {
+      // Trigger visual effects
+      switch (event) {
+        case GameEvent.pieceLocked:
+          if (orch.playerState.lastLockedPiece != null) {
+            triggerLockEffect(orch.playerState.lastLockedPiece!);
+          }
+        case GameEvent.linesCleared:
+          if (orch.playerState.lastClearedRows.isNotEmpty) {
+            triggerLineClearEffect(orch.playerState.lastClearedRows);
+          }
+        default:
+          break;
+      }
+      // Forward to audio callback (set by game screen)
+      onPlayerGameEvent?.call(event);
+    }
   }
 
   void _calculateLayout() {
@@ -511,6 +541,10 @@ class CyberBlockxGame extends FlameGame {
     // the game state directly as before.
     if (challengeOrchestrator != null) {
       challengeOrchestrator!.update(dt);
+      // Per-frame game operations — done in game loop, NOT via notifyListeners,
+      // to avoid rebuilding the full widget tree 60x/sec.
+      opponentProjection = challengeOrchestrator!.opponentProjection;
+      _processPlayerEvents();
     } else if (replayOrchestrator != null) {
       replayOrchestrator!.update(dt);
     } else {

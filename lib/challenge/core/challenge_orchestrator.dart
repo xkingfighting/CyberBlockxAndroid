@@ -45,6 +45,10 @@ class ChallengeOrchestrator extends ChangeNotifier {
   double _countdownSeconds = 3.0;
   double get countdownSeconds => _countdownSeconds;
 
+  /// Throttled timer display — only updates when integer second changes (~1/sec vs 60/sec).
+  int _displayedRemainingSeconds = 0;
+  int get displayedRemainingSeconds => _displayedRemainingSeconds;
+
   /// Remaining match time (for timed modes).
   double get remainingSeconds {
     if (config.duration <= 0) return double.infinity;
@@ -58,6 +62,11 @@ class ChallengeOrchestrator extends ChangeNotifier {
   /// Recent clear decay timer for ghost visual effect.
   double _clearDecayTimer = 0;
   List<int> _recentClearRows = [];
+
+  /// Pre-allocated grid buffer for ghost rendering — avoids 21 list allocations per frame.
+  final List<List<bool>> _gridBuffer = List.generate(
+    20, (_) => List.filled(10, false),
+  );
 
   /// Match result (available after finishing).
   ChallengeResult? _result;
@@ -112,6 +121,7 @@ class ChallengeOrchestrator extends ChangeNotifier {
   void startCountdown() {
     _phase = MatchPhase.countdown;
     _countdownSeconds = 3.0;
+    _displayedRemainingSeconds = config.duration > 0 ? config.duration : -1;
     notifyListeners();
   }
 
@@ -181,7 +191,16 @@ class ChallengeOrchestrator extends ChangeNotifier {
     // Check if match should end
     _checkMatchEnd();
 
-    notifyListeners();
+    // Throttle: only notify when displayed timer changes (~1/sec) to avoid
+    // rebuilding the full widget tree 60x/sec. Per-frame game operations
+    // (ghost projection, player events) are handled in the Flame game loop.
+    final newDisplayed = config.duration > 0
+        ? (config.duration - _elapsedSeconds).ceil().clamp(0, config.duration)
+        : -1;
+    if (newDisplayed != _displayedRemainingSeconds) {
+      _displayedRemainingSeconds = newDisplayed;
+      notifyListeners();
+    }
   }
 
   void _updateOpponentProjection(double dt) {
@@ -202,8 +221,11 @@ class ChallengeOrchestrator extends ChangeNotifier {
       }
     }
 
+    // Fill pre-allocated grid buffer in-place (zero allocations)
+    _fillBoolGrid(opponentState.board);
+
     _opponentProjection = OpponentProjection(
-      boardGrid: _extractBoolGrid(opponentState.board),
+      boardGrid: _gridBuffer,
       score: opponentState.scoring.score,
       level: opponentState.scoring.level,
       lines: opponentState.scoring.totalLines,
@@ -294,17 +316,16 @@ class ChallengeOrchestrator extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Extract a boolean grid from a Board for ghost rendering.
-  List<List<bool>> _extractBoolGrid(Board board) {
-    final grid = <List<bool>>[];
-    for (int y = board.height - 1; y >= 0; y--) {
-      final row = <bool>[];
-      for (int x = 0; x < board.width; x++) {
-        row.add(board.getCell(x, y).filled);
+  /// Fill pre-allocated grid buffer from board — zero allocations per frame.
+  void _fillBoolGrid(Board board) {
+    final height = board.height < _gridBuffer.length ? board.height : _gridBuffer.length;
+    final width = board.width < _gridBuffer[0].length ? board.width : _gridBuffer[0].length;
+    for (int y = height - 1; y >= 0; y--) {
+      final bufferRow = _gridBuffer[height - 1 - y];
+      for (int x = 0; x < width; x++) {
+        bufferRow[x] = board.getCell(x, y).filled;
       }
-      grid.add(row);
     }
-    return grid;
   }
 
   // -- Player input proxies --

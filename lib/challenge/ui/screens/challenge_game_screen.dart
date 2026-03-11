@@ -62,6 +62,9 @@ class _ChallengeGameScreenState extends State<ChallengeGameScreen> {
     // Let the Flame game loop drive the orchestrator (countdown, bot, etc.)
     _game.challengeOrchestrator = _orchestrator;
 
+    // Audio callback — fires per event from the Flame game loop (not widget rebuild)
+    _game.onPlayerGameEvent = _onPlayerGameEvent;
+
     _orchestrator.addListener(_onOrchestratorChanged);
 
     // Start background music and countdown
@@ -78,11 +81,9 @@ class _ChallengeGameScreenState extends State<ChallengeGameScreen> {
   }
 
   void _onOrchestratorChanged() {
-    // Feed opponent projection to the game for ghost board rendering
-    _game.opponentProjection = _orchestrator.opponentProjection;
-
-    // Handle game events from player state
-    _handlePlayerEvents();
+    // Per-frame game operations (opponent projection, player events/effects)
+    // are now handled directly in the Flame game loop — NOT here.
+    // This callback only fires on meaningful state changes (~1/sec for timer).
 
     // Sync Flame engine pause state
     _syncEngineState();
@@ -95,32 +96,23 @@ class _ChallengeGameScreenState extends State<ChallengeGameScreen> {
     setState(() {});
   }
 
-  void _handlePlayerEvents() {
-    final events = _orchestrator.playerState.popEvents();
-    for (final event in events) {
-      switch (event) {
-        case GameEvent.pieceLocked:
-          _audio.playSound(GameSound.lock);
-          if (_orchestrator.playerState.lastLockedPiece != null) {
-            _game.triggerLockEffect(_orchestrator.playerState.lastLockedPiece!);
-          }
-        case GameEvent.linesCleared:
-          _audio.playSound(GameSound.lineClear);
-          if (_orchestrator.playerState.lastClearedRows.isNotEmpty) {
-            _game.triggerLineClearEffect(
-                _orchestrator.playerState.lastClearedRows);
-          }
-        case GameEvent.tetris:
-          _audio.playSound(GameSound.tetris);
-        case GameEvent.levelUp:
-          _audio.playSound(GameSound.levelUp);
-        case GameEvent.gameOver:
-          _audio.onGameOver();
-        case GameEvent.combo:
-          _audio.playSound(GameSound.combo);
-        case GameEvent.perfectClear:
-          _audio.playSound(GameSound.perfectClear);
-      }
+  /// Audio callback — called per event from the Flame game loop.
+  void _onPlayerGameEvent(GameEvent event) {
+    switch (event) {
+      case GameEvent.pieceLocked:
+        _audio.playSound(GameSound.lock);
+      case GameEvent.linesCleared:
+        _audio.playSound(GameSound.lineClear);
+      case GameEvent.tetris:
+        _audio.playSound(GameSound.tetris);
+      case GameEvent.levelUp:
+        _audio.playSound(GameSound.levelUp);
+      case GameEvent.gameOver:
+        _audio.onGameOver();
+      case GameEvent.combo:
+        _audio.playSound(GameSound.combo);
+      case GameEvent.perfectClear:
+        _audio.playSound(GameSound.perfectClear);
     }
   }
 
