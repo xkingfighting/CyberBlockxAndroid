@@ -6,6 +6,8 @@ import '../models/match_state.dart';
 import '../models/opponent_projection.dart';
 import '../models/challenge_result.dart';
 import '../bot/bot_controller.dart';
+import '../replay/replay_data.dart';
+import '../replay/replay_recorder.dart';
 import 'seeded_random_bag.dart';
 
 /// Orchestrates a 1v1 challenge match.
@@ -24,6 +26,9 @@ class ChallengeOrchestrator extends ChangeNotifier {
 
   /// Bot controller (null if opponent is human - Phase 2).
   BotController? _botController;
+
+  /// Replay recorder for capturing match actions.
+  final ReplayRecorder _replayRecorder = ReplayRecorder();
 
   /// Match lifecycle.
   MatchPhase _phase = MatchPhase.idle;
@@ -95,6 +100,11 @@ class ChallengeOrchestrator extends ChangeNotifier {
         gameState: opponentState,
         profile: config.opponent.botProfile!,
       );
+      // Record bot actions for replay
+      _botController!.onActionExecuted = (action) {
+        final code = ReplayAction.fromActionString(action);
+        if (code >= 0) _replayRecorder.recordOpponentAction(code);
+      };
     }
   }
 
@@ -135,6 +145,7 @@ class ChallengeOrchestrator extends ChangeNotifier {
     playerState.startGame();
     opponentState.startGame();
     _botController?.reset();
+    _replayRecorder.start();
 
     notifyListeners();
   }
@@ -238,6 +249,7 @@ class ChallengeOrchestrator extends ChangeNotifier {
 
   void _finishMatch() {
     _phase = MatchPhase.finishing;
+    _replayRecorder.stop();
 
     // Determine winner
     final MatchOutcome outcome;
@@ -299,13 +311,40 @@ class ChallengeOrchestrator extends ChangeNotifier {
   // These forward to playerState so the game screen can call them.
   // All inputs are blocked while the player is paused.
 
-  void playerMoveLeft() { if (!_playerPaused) playerState.moveLeft(); }
-  void playerMoveRight() { if (!_playerPaused) playerState.moveRight(); }
-  void playerSoftDrop() { if (!_playerPaused) playerState.softDrop(); }
-  void playerHardDrop() { if (!_playerPaused) playerState.hardDrop(); }
-  void playerRotateCW() { if (!_playerPaused) playerState.rotateClockwise(); }
-  void playerRotateCCW() { if (!_playerPaused) playerState.rotateCounterClockwise(); }
-  void playerHold() { if (!_playerPaused) playerState.hold(); }
+  void playerMoveLeft() {
+    if (!_playerPaused) { playerState.moveLeft(); _replayRecorder.recordPlayerAction(ReplayAction.left); }
+  }
+  void playerMoveRight() {
+    if (!_playerPaused) { playerState.moveRight(); _replayRecorder.recordPlayerAction(ReplayAction.right); }
+  }
+  void playerSoftDrop() {
+    if (!_playerPaused) { playerState.softDrop(); _replayRecorder.recordPlayerAction(ReplayAction.softDrop); }
+  }
+  void playerHardDrop() {
+    if (!_playerPaused) { playerState.hardDrop(); _replayRecorder.recordPlayerAction(ReplayAction.hardDrop); }
+  }
+  void playerRotateCW() {
+    if (!_playerPaused) { playerState.rotateClockwise(); _replayRecorder.recordPlayerAction(ReplayAction.rotateCW); }
+  }
+  void playerRotateCCW() {
+    if (!_playerPaused) { playerState.rotateCounterClockwise(); _replayRecorder.recordPlayerAction(ReplayAction.rotateCCW); }
+  }
+  void playerHold() {
+    if (!_playerPaused) { playerState.hold(); _replayRecorder.recordPlayerAction(ReplayAction.hold); }
+  }
+
+  /// Get the recorded replay data after a match finishes.
+  ReplayData? getReplayData() {
+    if (_result == null) return null;
+    return _replayRecorder.finalize(
+      matchId: config.matchId,
+      seed: config.seed,
+      duration: config.duration,
+      modeType: config.modeType,
+      opponentName: config.opponent.displayName,
+      outcome: _result!.outcome.name,
+    );
+  }
 
   @override
   void dispose() {

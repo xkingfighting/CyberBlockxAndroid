@@ -8,6 +8,7 @@ import '../core/game_state.dart';
 import '../core/tetromino.dart';
 import '../challenge/core/challenge_orchestrator.dart';
 import '../challenge/models/opponent_projection.dart';
+import '../challenge/replay/replay_orchestrator.dart';
 import '../services/visual_settings.dart';
 
 /// Main game component using Flame engine
@@ -59,6 +60,10 @@ class CyberBlockxGame extends FlameGame {
   /// [gameState.update] directly.  This prevents double-updating the player
   /// state and ensures the countdown / bot / match-end logic runs each frame.
   ChallengeOrchestrator? challengeOrchestrator;
+
+  /// Optional replay orchestrator. When set, replays a recorded match
+  /// instead of live gameplay. Mutually exclusive with challengeOrchestrator.
+  ReplayOrchestrator? replayOrchestrator;
 
   // Pre-allocated paints for grid/board/frame/wave/effects
   final Paint _gridPaint = Paint()
@@ -506,6 +511,8 @@ class CyberBlockxGame extends FlameGame {
     // the game state directly as before.
     if (challengeOrchestrator != null) {
       challengeOrchestrator!.update(dt);
+    } else if (replayOrchestrator != null) {
+      replayOrchestrator!.update(dt);
     } else {
       gameState.update(dt);
     }

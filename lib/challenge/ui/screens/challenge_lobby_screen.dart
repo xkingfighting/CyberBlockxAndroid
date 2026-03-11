@@ -9,11 +9,13 @@ import '../../services/match_service.dart';
 class ChallengeLobbyScreen extends StatefulWidget {
   final VoidCallback onReturnToMenu;
   final void Function(MatchConfig config) onMatchFound;
+  final VoidCallback? onMatchHistory;
 
   const ChallengeLobbyScreen({
     super.key,
     required this.onReturnToMenu,
     required this.onMatchFound,
+    this.onMatchHistory,
   });
 
   @override
@@ -97,6 +99,20 @@ class _ChallengeLobbyScreenState extends State<ChallengeLobbyScreen>
                         L.challenge.tr,
                         style: CyberTextStyles.subtitle.copyWith(color: CyberColors.cyan),
                       ),
+                      const Spacer(),
+                      if (widget.onMatchHistory != null)
+                        GestureDetector(
+                          onTap: widget.onMatchHistory,
+                          child: Text(
+                            L.history.tr,
+                            style: CyberTextStyles.body.copyWith(
+                              color: CyberColors.cyan,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(width: 8),
                     ],
                   ),
                 ),

@@ -11,6 +11,7 @@ import '../../models/match_config.dart';
 import '../../models/match_state.dart';
 import '../../models/challenge_result.dart';
 import '../../core/challenge_orchestrator.dart';
+import '../../replay/replay_storage.dart';
 import '../../services/match_service.dart';
 import '../widgets/challenge_left_hud.dart';
 import '../widgets/challenge_top_bar.dart';
@@ -162,7 +163,21 @@ class _ChallengeGameScreenState extends State<ChallengeGameScreen> {
       seed: config.seed,
       configDuration: config.duration,
       opponentName: config.opponent.displayName,
+      // Match history enrichment
+      opponentLevel: result.opponentLevel,
+      opponentDifficulty: config.opponent.botProfile != null
+          ? _difficultyFromProfileId(config.opponent.botProfile!.profileId)
+          : null,
+      opponentBotProfileId: config.opponent.botProfile?.profileId,
     );
+
+    // Save replay locally (regardless of submit success)
+    final replayData = _orchestrator.getReplayData();
+    if (replayData != null) {
+      await ReplayStorage.save(replayData);
+      // Upload to server (fire-and-forget, for cross-device access & AI learning)
+      ReplayStorage.uploadToServer(replayData);
+    }
 
     if (mounted) {
       setState(() {
@@ -179,6 +194,16 @@ class _ChallengeGameScreenState extends State<ChallengeGameScreen> {
           ),
         );
       }
+    }
+  }
+
+  /// Map bot profileId to difficulty string.
+  static String _difficultyFromProfileId(String profileId) {
+    switch (profileId) {
+      case 'beginner': return 'easy';
+      case 'balanced': return 'medium';
+      case 'aggressive': return 'hard';
+      default: return 'easy';
     }
   }
 

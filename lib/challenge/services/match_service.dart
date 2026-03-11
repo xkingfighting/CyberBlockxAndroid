@@ -95,6 +95,18 @@ class MatchService {
     int? seed,
     int? configDuration,
     String? opponentName,
+    // Match history enrichment fields
+    int? opponentLevel,
+    String? opponentDifficulty,
+    String? opponentBotProfileId,
+    String rulesetVersion = '1.0',
+    // Extended stats
+    int? playerMaxCombo,
+    int? playerTetrisCount,
+    int? playerPerfectClears,
+    int? opponentPiecesPlaced,
+    String clientPlatform = 'flutter_android',
+    String matchSource = '',
   }) async {
     try {
       final token = await AuthService.instance.getValidAccessToken();
@@ -118,6 +130,20 @@ class MatchService {
       if (seed != null) body['seed'] = '$seed';
       if (configDuration != null) body['configDuration'] = '$configDuration';
       if (opponentName != null) body['opponentName'] = opponentName;
+
+      // Match history enrichment
+      if (opponentLevel != null) body['opponentLevel'] = '$opponentLevel';
+      if (opponentDifficulty != null) body['opponentDifficulty'] = opponentDifficulty;
+      if (opponentBotProfileId != null) body['opponentBotProfileId'] = opponentBotProfileId;
+      body['rulesetVersion'] = rulesetVersion;
+
+      // Extended stats
+      if (playerMaxCombo != null) body['playerMaxCombo'] = '$playerMaxCombo';
+      if (playerTetrisCount != null) body['playerTetrisCount'] = '$playerTetrisCount';
+      if (playerPerfectClears != null) body['playerPerfectClears'] = '$playerPerfectClears';
+      if (opponentPiecesPlaced != null) body['opponentPiecesPlaced'] = '$opponentPiecesPlaced';
+      body['clientPlatform'] = clientPlatform;
+      if (matchSource.isNotEmpty) body['matchSource'] = matchSource;
 
       final response = await http.post(
         Uri.parse('$_baseUrl/?_controller=Api&_function=Match&__function=Submit'),

@@ -13,6 +13,7 @@ import 'ui/screens/badges_screen.dart';
 import 'ui/screens/account_screen.dart';
 import 'challenge/ui/screens/challenge_lobby_screen.dart';
 import 'challenge/ui/screens/challenge_game_screen.dart';
+import 'challenge/ui/screens/match_history_screen.dart';
 import 'challenge/models/match_config.dart';
 import 'services/audio_manager.dart';
 import 'services/leaderboard_service.dart';
@@ -148,6 +149,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
   bool _showBadges = false;
   bool _showAccount = false;
   bool _showChallengeLobby = false;
+  bool _showMatchHistory = false;
   MatchConfig? _challengeConfig; // non-null = in challenge game
 
   @override
@@ -172,37 +174,12 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
     return result ?? false;
   }
 
-  /// Gate challenge mode behind login.
+  /// Gate challenge mode behind login — navigate to login page if not authenticated.
   void _openChallengeIfLoggedIn() {
     if (AuthService.instance.isBound) {
       setState(() => _showChallengeLobby = true);
     } else {
-      final loc = LocalizationService.instance;
-      showDialog(
-        context: context,
-        barrierColor: Colors.black87,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: CyberColors.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: CyberColors.cyan.withValues(alpha: 0.3)),
-          ),
-          title: Text(
-            loc.tr(L.loginRequired),
-            style: CyberTextStyles.subtitle.copyWith(color: CyberColors.cyan),
-          ),
-          content: Text(
-            loc.tr(L.loginToChallenge),
-            style: CyberTextStyles.body.copyWith(color: CyberColors.textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('OK', style: CyberTextStyles.button.copyWith(color: CyberColors.cyan)),
-            ),
-          ],
-        ),
-      );
+      setState(() => _showBind = true);
     }
   }
 
@@ -211,7 +188,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
     if (didPop) return true;
 
     // If on a sub-screen, go back to menu
-    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges || _showAccount || _showChallengeLobby) {
+    if (_showSettings || _showLeaderboard || _showControls || _showBind || _showBadges || _showAccount || _showChallengeLobby || _showMatchHistory) {
       setState(() {
         _showSettings = false;
         _showLeaderboard = false;
@@ -220,6 +197,7 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
         _showBadges = false;
         _showAccount = false;
         _showChallengeLobby = false;
+        _showMatchHistory = false;
       });
       return false;
     }
@@ -318,6 +296,14 @@ class _MainNavigatorState extends State<MainNavigator> with WidgetsBindingObserv
           _showChallengeLobby = false;
           _challengeConfig = config;
         }),
+        onMatchHistory: () => setState(() {
+          _showChallengeLobby = false;
+          _showMatchHistory = true;
+        }),
+      );
+    } else if (_showMatchHistory) {
+      content = MatchHistoryScreen(
+        onClose: () => setState(() => _showMatchHistory = false),
       );
     } else if (_showSettings) {
       content = SettingsScreen(

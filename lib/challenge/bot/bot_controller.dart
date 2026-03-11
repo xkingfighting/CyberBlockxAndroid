@@ -28,6 +28,9 @@ class BotController {
   /// Accumulated time in seconds.
   double _elapsed = 0;
 
+  /// Callback fired after each action is executed (for replay recording).
+  void Function(String action)? onActionExecuted;
+
   BotController({
     required this.gameState,
     required this.profile,
@@ -127,6 +130,7 @@ class BotController {
       case 'hold':
         gameState.hold();
     }
+    onActionExecuted?.call(action);
   }
 
   /// Reset bot state (e.g., when starting a new match).
