@@ -140,6 +140,49 @@ class ReplayStorage {
     }
   }
 
+  /// Upload solo game replay to server. Fire-and-forget, failures are silent.
+  static Future<void> uploadSoloReplay(ReplayData replay, {
+    int score = 0,
+    int lines = 0,
+    int level = 0,
+  }) async {
+    try {
+      final token = await AuthService.instance.getValidAccessToken();
+      if (token == null) return;
+
+      final uri = Uri.parse(
+        '$_baseUrl/?_controller=Api&_function=Score&__function=UploadReplay',
+      );
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': 'Bearer $token',
+        },
+        body: {
+          'game_token': replay.matchId,
+          'replayData': jsonEncode(replay.toJson()),
+          'score': score.toString(),
+          'lines': lines.toString(),
+          'level': level.toString(),
+          'duration': replay.duration.toString(),
+        },
+      ).timeout(_timeout);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        if (json['ret'] == 1) {
+          debugPrint('[ReplayStorage] uploaded solo replay for ${replay.matchId}');
+        } else {
+          debugPrint('[ReplayStorage] solo upload response: ${json['msg']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('[ReplayStorage] solo upload error: $e');
+    }
+  }
+
   /// Download replay from server and cache locally.
   /// Returns null if not available on server.
   static Future<ReplayData?> downloadFromServer(String matchId) async {

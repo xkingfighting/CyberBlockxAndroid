@@ -7,9 +7,9 @@ import '../../../ui/theme/cyber_theme.dart';
 import '../../models/match_state.dart';
 import '../../replay/replay_data.dart';
 import '../../replay/replay_orchestrator.dart';
-import '../../replay/replay_video_exporter.dart';
 import '../widgets/challenge_left_hud.dart';
 import '../widgets/opponent_ghost_hud.dart';
+import '../../../ui/widgets/game_hud.dart';
 import '../widgets/match_countdown_overlay.dart';
 
 /// Replay viewer screen for watching recorded challenge matches.
@@ -61,8 +61,10 @@ class _ReplayScreenState extends State<ReplayScreen> {
   }
 
   void _onOrchestratorChanged() {
-    // Feed opponent projection to the game for ghost board rendering
-    _game.opponentProjection = _orchestrator.opponentProjection;
+    // Feed opponent projection to the game for ghost board rendering (skip for solo)
+    if (!_orchestrator.isSinglePlayer) {
+      _game.opponentProjection = _orchestrator.opponentProjection;
+    }
 
     // Handle game events from player state (visual effects only, no audio during replay)
     _handlePlayerEvents();
@@ -137,23 +139,45 @@ class _ReplayScreenState extends State<ReplayScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Left HUD - Hold + Score/Level/Lines + Next queue
-                    ChallengeLeftHUD(gameState: _orchestrator.playerState),
+                    // Left HUD - Hold + Score/Level/Lines (+ Next queue in challenge mode)
+                    ChallengeLeftHUD(
+                      gameState: _orchestrator.playerState,
+                      showNext: !_orchestrator.isSinglePlayer,
+                    ),
 
                     // Game board in center
                     Expanded(
                       child: GameWidget(game: _game),
                     ),
 
-                    // Right HUD - Opponent ghost stats
-                    ListenableBuilder(
-                      listenable: _orchestrator,
-                      builder: (context, _) {
-                        return OpponentGhostHUD(
-                          opponent: _orchestrator.opponentMatchState,
-                        );
-                      },
-                    ),
+                    // Right HUD
+                    if (!_orchestrator.isSinglePlayer)
+                      // Challenge mode: Opponent ghost stats
+                      ListenableBuilder(
+                        listenable: _orchestrator,
+                        builder: (context, _) {
+                          return OpponentGhostHUD(
+                            opponent: _orchestrator.opponentMatchState,
+                          );
+                        },
+                      )
+                    else
+                      // Solo mode: NEXT queue on right side
+                      SizedBox(
+                        width: 58,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 2, top: 10),
+                          child: Column(
+                            children: [
+                              SideNextQueue(
+                                label: L.next.tr,
+                                pieces: _orchestrator.playerState.previewQueue,
+                              ),
+                              const Spacer(),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -213,6 +237,8 @@ class _ReplayTopBar extends StatelessWidget {
 
   const _ReplayTopBar({required this.replay, required this.onClose});
 
+  bool get _isSolo => replay.opponentActions.isEmpty;
+
   @override
   Widget build(BuildContext context) {
     final outcomeColor = replay.outcome == 'win'
@@ -240,9 +266,9 @@ class _ReplayTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // REPLAY title
+          // Title: "SOLO REPLAY" or "REPLAY"
           Text(
-            L.replayTitle.tr,
+            _isSolo ? L.soloReplay.tr : L.replayTitle.tr,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w900,
@@ -253,38 +279,42 @@ class _ReplayTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // vs opponent
-          Expanded(
-            child: Text(
-              'vs ${replay.opponentName}',
-              style: TextStyle(
-                fontSize: 11,
-                fontFamily: 'monospace',
-                color: Colors.white.withValues(alpha: 0.5),
+          // vs opponent (hidden for solo)
+          if (!_isSolo)
+            Expanded(
+              child: Text(
+                'vs ${replay.opponentName}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
 
-          // Outcome chip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: outcomeColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: outcomeColor.withValues(alpha: 0.5)),
-            ),
-            child: Text(
-              replay.outcome.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                fontFamily: 'monospace',
-                color: outcomeColor,
-                letterSpacing: 1,
+          if (_isSolo) const Spacer(),
+
+          // Outcome chip (hidden for solo — always "game_over")
+          if (!_isSolo)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: outcomeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: outcomeColor.withValues(alpha: 0.5)),
+              ),
+              child: Text(
+                replay.outcome.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                  color: outcomeColor,
+                  letterSpacing: 1,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -424,7 +454,7 @@ class _SpeedChip extends StatelessWidget {
 }
 
 /// Overlay shown when replay playback is complete.
-class _ReplayCompleteOverlay extends StatefulWidget {
+class _ReplayCompleteOverlay extends StatelessWidget {
   final ReplayData replay;
   final VoidCallback onClose;
   final VoidCallback onReplay;
@@ -436,115 +466,61 @@ class _ReplayCompleteOverlay extends StatefulWidget {
   });
 
   @override
-  State<_ReplayCompleteOverlay> createState() => _ReplayCompleteOverlayState();
-}
-
-class _ReplayCompleteOverlayState extends State<_ReplayCompleteOverlay> {
-  bool _isSaving = false;
-  double _saveProgress = 0;
-  String? _toastMessage;
-
-  @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          color: Colors.black.withValues(alpha: 0.7),
-          child: SafeArea(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title
-                  Text(
-                    L.replayComplete.tr,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'monospace',
-                      color: CyberColors.cyan,
-                      letterSpacing: 4,
-                      shadows: [
-                        Shadow(
-                          color: CyberColors.cyan.withValues(alpha: 0.5),
-                          blurRadius: 15,
-                        ),
-                      ],
+    return Container(
+      color: Colors.black.withValues(alpha: 0.7),
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title
+              Text(
+                L.replayComplete.tr,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'monospace',
+                  color: CyberColors.cyan,
+                  letterSpacing: 4,
+                  shadows: [
+                    Shadow(
+                      color: CyberColors.cyan.withValues(alpha: 0.5),
+                      blurRadius: 15,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // --- Replay Again ---
-                  _overlayButton(
-                    icon: Icons.replay,
-                    label: L.replayAgain.tr,
-                    onTap: widget.onReplay,
-                    disabled: _isSaving,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // --- Save Video ---
-                  _overlayButton(
-                    icon: _isSaving ? null : Icons.file_download,
-                    label: _isSaving ? L.savingVideo.tr : L.saveVideo.tr,
-                    onTap: _saveVideo,
-                    disabled: _isSaving,
-                    showSpinner: _isSaving,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // --- Return to Menu ---
-                  _overlayButton(
-                    icon: Icons.close,
-                    label: L.returnToMenu.tr,
-                    onTap: widget.onClose,
-                    disabled: _isSaving,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+
+              // --- Replay Again ---
+              _overlayButton(
+                icon: Icons.replay,
+                label: L.replayAgain.tr,
+                onTap: onReplay,
+              ),
+              const SizedBox(height: 12),
+
+              // --- Return to Menu ---
+              _overlayButton(
+                icon: Icons.close,
+                label: L.returnToMenu.tr,
+                onTap: onClose,
+              ),
+            ],
           ),
         ),
-
-        // Toast
-        if (_toastMessage != null)
-          Positioned(
-            bottom: 80,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF262626),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _toastMessage!,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 
   Widget _overlayButton({
-    IconData? icon,
+    required IconData icon,
     required String label,
     required VoidCallback onTap,
-    bool disabled = false,
-    bool showSpinner = false,
   }) {
     return GestureDetector(
-      onTap: disabled ? null : onTap,
+      onTap: onTap,
       child: Container(
         width: 220,
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -552,7 +528,7 @@ class _ReplayCompleteOverlayState extends State<_ReplayCompleteOverlay> {
           color: CyberColors.cyan.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: CyberColors.cyan.withValues(alpha: disabled ? 0.3 : 1.0),
+            color: CyberColors.cyan,
             width: 1.5,
           ),
         ),
@@ -560,68 +536,21 @@ class _ReplayCompleteOverlayState extends State<_ReplayCompleteOverlay> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showSpinner) ...[
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: CyberColors.cyan.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ] else if (icon != null) ...[
-              Icon(
-                icon,
-                color: CyberColors.cyan.withValues(alpha: disabled ? 0.4 : 1.0),
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-            ],
+            Icon(icon, color: CyberColors.cyan, size: 18),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
                 fontFamily: 'monospace',
-                color:
-                    CyberColors.cyan.withValues(alpha: disabled ? 0.4 : 1.0),
+                color: CyberColors.cyan,
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  void _saveVideo() {
-    setState(() {
-      _isSaving = true;
-      _saveProgress = 0;
-    });
-
-    final exporter = ReplayVideoExporter();
-    exporter.export(widget.replay, (progress) {
-      if (mounted) setState(() => _saveProgress = progress);
-    }).then((success) {
-      if (!mounted) return;
-      setState(() {
-        _isSaving = false;
-        _toastMessage = success ? L.savedToPhotos.tr : L.saveVideoError.tr;
-      });
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _toastMessage = null);
-      });
-    }).catchError((e) {
-      if (!mounted) return;
-      setState(() {
-        _isSaving = false;
-        _toastMessage = L.saveVideoError.tr;
-      });
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _toastMessage = null);
-      });
-    });
   }
 }
 

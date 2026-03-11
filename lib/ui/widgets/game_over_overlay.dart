@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../challenge/replay/replay_data.dart';
 import '../../models/share_card_data.dart';
 import '../../services/api_service.dart';
 import '../../services/auth_service.dart';
@@ -26,6 +27,8 @@ class GameOverOverlay extends StatefulWidget {
   final ScoreSubmitResponse? syncedResult; // Result from HighScoreOverlay sync
   final Map<String, dynamic>? integrity; // Anti-cheat integrity data from GameState
   final Uint8List? gameScreenshot; // Game board screenshot for share card background
+  final ReplayData? replayData; // Replay data for watch replay button
+  final VoidCallback? onWatchReplay; // Callback to watch replay
 
   const GameOverOverlay({
     super.key,
@@ -42,6 +45,8 @@ class GameOverOverlay extends StatefulWidget {
     this.syncedResult,
     this.integrity,
     this.gameScreenshot,
+    this.replayData,
+    this.onWatchReplay,
   });
 
   @override
@@ -293,6 +298,17 @@ class _GameOverOverlayState extends State<GameOverOverlay>
                       color: CyberColors.yellow,
                       onTap: widget.onLeaderboard ?? () {},
                     ),
+
+                    // Watch Replay button (only if replay data available)
+                    if (widget.onWatchReplay != null) ...[
+                      const SizedBox(height: 16),
+                      _OutlineButton(
+                        text: L.watchReplay.tr,
+                        icon: Icons.replay,
+                        color: CyberColors.purple,
+                        onTap: widget.onWatchReplay!,
+                      ),
+                    ],
 
                     // Share button (only after successful upload)
                     if (_uploaded && _submitResult != null) ...[

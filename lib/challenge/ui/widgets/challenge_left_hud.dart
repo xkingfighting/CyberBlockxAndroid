@@ -10,8 +10,9 @@ import '../../../ui/widgets/game_hud.dart';
 /// side is replaced by OpponentGhostHUD, so we combine everything on the left.
 class ChallengeLeftHUD extends StatelessWidget {
   final GameState gameState;
+  final bool showNext;
 
-  const ChallengeLeftHUD({super.key, required this.gameState});
+  const ChallengeLeftHUD({super.key, required this.gameState, this.showNext = true});
 
   @override
   Widget build(BuildContext context) {
@@ -69,13 +70,14 @@ class ChallengeLeftHUD extends StatelessWidget {
               ),
             ],
 
-            const SizedBox(height: 6),
-
-            // Next pieces queue (cyan)
-            SideNextQueue(
-              label: L.next.tr,
-              pieces: gameState.previewQueue,
-            ),
+            // Next pieces queue (cyan) — hidden when showNext is false (solo replay moves NEXT to right side)
+            if (showNext) ...[
+              const SizedBox(height: 6),
+              SideNextQueue(
+                label: L.next.tr,
+                pieces: gameState.previewQueue,
+              ),
+            ],
 
             const Spacer(),
           ],

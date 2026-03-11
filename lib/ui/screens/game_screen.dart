@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flame/game.dart';
@@ -11,6 +12,11 @@ import '../../services/leaderboard_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../../services/global_leaderboard_service.dart';
+import '../../challenge/core/seeded_random_bag.dart';
+import '../../challenge/replay/replay_recorder.dart';
+import '../../challenge/replay/replay_data.dart';
+import '../../challenge/replay/replay_storage.dart';
+import '../../challenge/ui/screens/replay_screen.dart';
 import '../theme/cyber_theme.dart';
 import '../widgets/game_hud.dart';
 import '../widgets/touch_controls.dart';
@@ -47,6 +53,11 @@ class _GameScreenState extends State<GameScreen> {
   final GlobalKey _gameBoundaryKey = GlobalKey();
   Uint8List? _gameScreenshot;
 
+  // Replay recording
+  int _gameSeed = 0;
+  final ReplayRecorder _replayRecorder = ReplayRecorder();
+  ReplayData? _lastReplayData;
+
   // High score dialog state
   bool _showHighScoreDialog = false;
   bool _highScoreSubmitted = false;
@@ -71,7 +82,17 @@ class _GameScreenState extends State<GameScreen> {
     if (_game.paused) {
       _game.resumeEngine();
     }
+
+    // Generate deterministic seed for replay
+    _gameSeed = DateTime.now().microsecondsSinceEpoch ^ Random().nextInt(2147483647);
+    _gameState.setPieceBag(SeededRandomBag(_gameSeed));
+
     _gameState.startGame();
+
+    // Start replay recording
+    _replayRecorder.start();
+    _lastReplayData = null;
+
     _maxCombo = 0;
     _gameStartTime = DateTime.now();
     _gameScreenshot = null;
@@ -116,6 +137,13 @@ class _GameScreenState extends State<GameScreen> {
     // This ensures capture + checkHighScore run even if an earlier event handler threw
     if (_gameState.phase == GamePhase.gameOver && _gameScreenshot == null && !_highScoreSubmitted) {
       debugPrint('ShareCard: Phase gameOver detected, triggering capture + high score check');
+
+      // Stop replay recording and finalize
+      if (_replayRecorder.isRecording) {
+        _replayRecorder.stop();
+        _finalizeAndSaveReplay();
+      }
+
       try {
         _captureGameScreen();
       } catch (e) {
@@ -347,34 +375,41 @@ class _GameScreenState extends State<GameScreen> {
                       onMoveLeft: () {
                         if (_gameState.moveLeft()) {
                           _audio.playSound(GameSound.move);
+                          _replayRecorder.recordPlayerAction(ReplayAction.left);
                         }
                       },
                       onMoveRight: () {
                         if (_gameState.moveRight()) {
                           _audio.playSound(GameSound.move);
+                          _replayRecorder.recordPlayerAction(ReplayAction.right);
                         }
                       },
                       onSoftDrop: () {
                         if (_gameState.softDrop()) {
                           _audio.playSound(GameSound.move);
+                          _replayRecorder.recordPlayerAction(ReplayAction.softDrop);
                         }
                       },
                       onHardDrop: () {
                         _gameState.hardDrop();
+                        _replayRecorder.recordPlayerAction(ReplayAction.hardDrop);
                       },
                       onRotateCW: () {
                         if (_gameState.rotateClockwise()) {
                           _audio.playSound(GameSound.rotate);
+                          _replayRecorder.recordPlayerAction(ReplayAction.rotateCW);
                         }
                       },
                       onRotateCCW: () {
                         if (_gameState.rotateCounterClockwise()) {
                           _audio.playSound(GameSound.rotate);
+                          _replayRecorder.recordPlayerAction(ReplayAction.rotateCCW);
                         }
                       },
                       onHold: () {
                         _audio.playSound(GameSound.hold);
                         _gameState.hold();
+                        _replayRecorder.recordPlayerAction(ReplayAction.hold);
                       },
                       onPause: () {
                         _gameState.togglePause();
@@ -476,6 +511,8 @@ class _GameScreenState extends State<GameScreen> {
                   syncedResult: _syncedSubmitResult,
                   integrity: _gameState.getIntegrityData(),
                   gameScreenshot: _gameScreenshot,
+                  replayData: _lastReplayData,
+                  onWatchReplay: _lastReplayData != null ? _watchReplay : null,
                   onRestart: () {
                     _startNewGame();
                     _audio.onGameStart();
@@ -492,6 +529,46 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Finalize replay data and save locally + upload to server.
+  void _finalizeAndSaveReplay() {
+    final replay = _replayRecorder.finalize(
+      matchId: _gameState.gameToken,
+      seed: _gameSeed,
+      duration: _gameState.gameDurationSeconds,
+      modeType: 'solo',
+      opponentName: '',
+      outcome: 'game_over',
+    );
+    _lastReplayData = replay;
+
+    // Save locally
+    ReplayStorage.save(replay);
+
+    // Upload to server (fire-and-forget)
+    ReplayStorage.uploadSoloReplay(
+      replay,
+      score: _gameState.scoring.score,
+      lines: _gameState.scoring.totalLines,
+      level: _gameState.scoring.level,
+    );
+
+    debugPrint('[GameScreen] Replay finalized: ${replay.playerActions.length} actions, '
+        'seed=$_gameSeed, duration=${replay.duration}s');
+  }
+
+  /// Navigate to replay viewer for the last game.
+  void _watchReplay() {
+    if (_lastReplayData == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReplayScreen(
+          replay: _lastReplayData!,
+          onClose: () => Navigator.of(context).pop(),
         ),
       ),
     );
@@ -516,18 +593,21 @@ class _GameScreenState extends State<GameScreen> {
       case LogicalKeyboardKey.keyA:
         if (_gameState.moveLeft()) {
           _audio.playSound(GameSound.move);
+          _replayRecorder.recordPlayerAction(ReplayAction.left);
         }
         break;
       case LogicalKeyboardKey.arrowRight:
       case LogicalKeyboardKey.keyD:
         if (_gameState.moveRight()) {
           _audio.playSound(GameSound.move);
+          _replayRecorder.recordPlayerAction(ReplayAction.right);
         }
         break;
       case LogicalKeyboardKey.arrowDown:
       case LogicalKeyboardKey.keyS:
         if (_gameState.softDrop()) {
           _audio.playSound(GameSound.move);
+          _replayRecorder.recordPlayerAction(ReplayAction.softDrop);
         }
         break;
       case LogicalKeyboardKey.arrowUp:
@@ -535,20 +615,24 @@ class _GameScreenState extends State<GameScreen> {
       case LogicalKeyboardKey.keyX:
         if (_gameState.rotateClockwise()) {
           _audio.playSound(GameSound.rotate);
+          _replayRecorder.recordPlayerAction(ReplayAction.rotateCW);
         }
         break;
       case LogicalKeyboardKey.keyZ:
         if (_gameState.rotateCounterClockwise()) {
           _audio.playSound(GameSound.rotate);
+          _replayRecorder.recordPlayerAction(ReplayAction.rotateCCW);
         }
         break;
       case LogicalKeyboardKey.space:
         _gameState.hardDrop();
+        _replayRecorder.recordPlayerAction(ReplayAction.hardDrop);
         break;
       case LogicalKeyboardKey.keyC:
       case LogicalKeyboardKey.shiftLeft:
         _audio.playSound(GameSound.hold);
         _gameState.hold();
+        _replayRecorder.recordPlayerAction(ReplayAction.hold);
         break;
       case LogicalKeyboardKey.escape:
       case LogicalKeyboardKey.keyP:

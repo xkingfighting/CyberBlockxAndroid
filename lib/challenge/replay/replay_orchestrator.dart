@@ -59,17 +59,26 @@ class ReplayOrchestrator extends ChangeNotifier {
   OpponentProjection _opponentProjection = OpponentProjection.empty();
   OpponentProjection get opponentProjection => _opponentProjection;
 
+  /// Whether this is a single-player (solo) replay with no opponent.
+  bool get isSinglePlayer => replay.opponentActions.isEmpty;
+
   /// Recent clear decay timer for ghost visual effect.
   double _clearDecayTimer = 0;
   List<int> _recentClearRows = [];
 
   ReplayOrchestrator({required this.replay}) {
-    // Create both game states with the same seeded random bag
+    // Create player game state with seeded random bag
     final playerBag = SeededRandomBag(replay.seed);
-    final opponentBag = SeededRandomBag(replay.seed);
-
     playerState = GameState(pieceBag: playerBag);
-    opponentState = GameState(pieceBag: opponentBag);
+
+    // Only create opponent state if not single-player
+    if (replay.opponentActions.isNotEmpty) {
+      final opponentBag = SeededRandomBag(replay.seed);
+      opponentState = GameState(pieceBag: opponentBag);
+    } else {
+      // Dummy opponent state for single-player (never used)
+      opponentState = GameState();
+    }
   }
 
   /// Start the replay countdown.
@@ -108,7 +117,9 @@ class ReplayOrchestrator extends ChangeNotifier {
     _opponentActionIndex = 0;
 
     playerState.startGame();
-    opponentState.startGame();
+    if (!isSinglePlayer) {
+      opponentState.startGame();
+    }
 
     notifyListeners();
   }
@@ -119,7 +130,9 @@ class ReplayOrchestrator extends ChangeNotifier {
 
     // Update game physics (gravity, lock delay)
     playerState.update(adjustedDt);
-    opponentState.update(adjustedDt);
+    if (!isSinglePlayer) {
+      opponentState.update(adjustedDt);
+    }
 
     // Execute player actions up to current time
     while (_playerActionIndex < replay.playerActions.length) {
@@ -129,21 +142,23 @@ class ReplayOrchestrator extends ChangeNotifier {
       _playerActionIndex++;
     }
 
-    // Execute opponent actions up to current time
-    while (_opponentActionIndex < replay.opponentActions.length) {
-      final action = replay.opponentActions[_opponentActionIndex];
-      if (action.timestampMs > _currentTimeMs) break;
-      _executeAction(opponentState, action.actionCode);
-      _opponentActionIndex++;
+    // Execute opponent actions up to current time (skip for solo)
+    if (!isSinglePlayer) {
+      while (_opponentActionIndex < replay.opponentActions.length) {
+        final action = replay.opponentActions[_opponentActionIndex];
+        if (action.timestampMs > _currentTimeMs) break;
+        _executeAction(opponentState, action.actionCode);
+        _opponentActionIndex++;
+      }
+
+      // Update opponent projection
+      _updateOpponentProjection(adjustedDt);
     }
 
-    // Update opponent projection
-    _updateOpponentProjection(adjustedDt);
-
-    // Check if replay is complete
-    if (_playerActionIndex >= replay.playerActions.length &&
-        _opponentActionIndex >= replay.opponentActions.length &&
-        _currentTimeMs >= totalDurationMs) {
+    // Check if replay is complete (solo only checks player actions)
+    final playerDone = _playerActionIndex >= replay.playerActions.length;
+    final opponentDone = isSinglePlayer || _opponentActionIndex >= replay.opponentActions.length;
+    if (playerDone && opponentDone && _currentTimeMs >= totalDurationMs) {
       _finishPlayback();
     }
 
